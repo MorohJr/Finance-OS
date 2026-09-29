@@ -3,6 +3,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { SectionTitle } from '../components/Card';
 import { BottomSheet } from '../components/BottomSheet';
 import { Icon } from '../components/Icon';
+import { Toggle } from '../components/Form';
 import { usePlatform, useSettings } from '../hooks';
 import { db } from '../../db/db';
 import type { Theme } from '../../domain/schemas';
@@ -12,6 +13,8 @@ import { WrongPasswordError } from '../../services/crypto';
 import { saveFile } from '../../services/platform';
 import { formatDisplayDate, todayIL } from '../../calc/dates';
 import { he } from '../strings.he';
+import { ListRow } from '../components/ListRow';
+import { CsvExport, PinSettings } from './SettingsExtras';
 
 const S = he.settings;
 
@@ -312,21 +315,31 @@ export function SettingsScreen() {
               <span className="shrink-0">{S.theme}</span>
               <ThemePicker value={settings.theme} />
             </Row>
-            <Row>
-              <label className="flex flex-1 items-center justify-between gap-3">
-                <span>
-                  <span className="block">{S.hideAgorot}</span>
-                  <span className="block text-xs text-muted">{S.hideAgorotHint}</span>
-                </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={settings.hideAgorot}
-                  onChange={(e) => updateSettings(db, { hideAgorot: e.target.checked })}
-                  className="size-6 accent-(--brand)"
-                />
-              </label>
-            </Row>
+            <div className="px-4 py-2">
+              <Toggle label={S.hideAgorot} hint={S.hideAgorotHint} checked={settings.hideAgorot} onChange={(v) => void updateSettings(db, { hideAgorot: v })} />
+            </div>
+          </Group>
+        </section>
+
+        <section>
+          <SectionTitle>{S.data}</SectionTitle>
+          <Group>
+            <ListRow to="/settings/categories" icon="folder" label={S.categories} />
+            <ListRow to="/accounts" icon="wallet" label={he.accounts.title} />
+          </Group>
+        </section>
+
+        <section>
+          <SectionTitle>{S.security}</SectionTitle>
+          <Group>
+            <PinSettings />
+          </Group>
+        </section>
+
+        <section>
+          <SectionTitle>{he.csv.title}</SectionTitle>
+          <Group>
+            <CsvExport />
           </Group>
         </section>
 

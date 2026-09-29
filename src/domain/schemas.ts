@@ -146,7 +146,7 @@ export const BusinessIncomeDetails = z.object({
 });
 
 /** Kinds whose sign is not implied by the kind itself (SPEC 6.3, decision 30/09/2026). */
-export const SIGNED_KINDS = ['opening_balance', 'adjustment'] as const;
+export const SIGNED_KINDS = ['opening_balance', 'adjustment', 'investment_trade'] as const;
 
 export const Transaction = z
   .object({
@@ -186,7 +186,7 @@ export const Transaction = z
     }
     const signed = (SIGNED_KINDS as readonly string[]).includes(t.kind);
     if (signed && !t.direction) ctx.addIssue({ code: 'custom', message: 'חובה לבחור כיוון', path: ['direction'] });
-    if (!signed && t.direction) ctx.addIssue({ code: 'custom', message: 'כיוון רק ליתרת פתיחה ולתיקון', path: ['direction'] });
+    if (!signed && t.direction) ctx.addIssue({ code: 'custom', message: 'כיוון רק לסוגים עם ±', path: ['direction'] });
     if (t.kind === 'adjustment' && !t.note?.trim()) {
       ctx.addIssue({ code: 'custom', message: 'תיקון דורש הערה', path: ['note'] });
     }

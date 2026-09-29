@@ -4,7 +4,7 @@ import { MODULES, type ModuleKey } from '../modules';
 import { he } from '../strings.he';
 
 // SPEC 7.1 order. When the business module is active it moves to the top (stage 8).
-const FINANCE: ModuleKey[] = ['accounts', 'debts', 'checks', 'investments', 'pension', 'salary'];
+const FINANCE: ModuleKey[] = ['cards', 'debts', 'checks', 'investments', 'pension', 'salary'];
 const BUSINESS: ModuleKey[] = ['business', 'tax'];
 const TOOLS: ModuleKey[] = ['reports', 'import'];
 
@@ -23,6 +23,9 @@ export function MoreScreen() {
     <>
       <ScreenHeader title={he.more.title} />
       <div className="flex flex-col gap-4 px-4">
+        <ListGroup>
+          <ListRow to="/accounts" icon="wallet" label={he.accounts.title} />
+        </ListGroup>
         <Group items={FINANCE} />
         <Group items={BUSINESS} />
         <Group items={TOOLS} />

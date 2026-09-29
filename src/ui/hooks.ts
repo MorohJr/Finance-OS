@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useLocation, useNavigate } from 'react-router';
 import { db, USER_DATA_TABLES } from '../db/db';
 import { SETTINGS_ID, type Settings } from '../domain/schemas';
 import { hasUserData } from '../services/settings';
@@ -40,4 +41,14 @@ export function usePlatform(): PlatformState {
     };
   }, []);
   return { persisted, installed };
+}
+
+/**
+ * Back navigation that never leaves the app: if this page was opened directly (no in-app history),
+ * go to `fallback` instead of history.back().
+ */
+export function useGoBack(fallback: string): () => void {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return () => (location.key !== 'default' ? navigate(-1) : navigate(fallback, { replace: true }));
 }

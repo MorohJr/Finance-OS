@@ -3,7 +3,7 @@ import { he } from './strings.he';
 
 /** Modules not built yet, with the SPEC 13 stage they belong to. */
 export const MODULES = {
-  accounts: { label: he.more.accounts, icon: 'wallet', stage: 1 },
+  cards: { label: 'כרטיסי אשראי', icon: 'card', stage: 2 },
   budget: { label: he.plan.budget, icon: 'target', stage: 3 },
   recurring: { label: he.plan.recurring, icon: 'repeat', stage: 3 },
   forecast: { label: he.plan.forecast, icon: 'trend', stage: 3 },

@@ -48,6 +48,8 @@ Node נמצא ב-`~/.local/node/bin` (לא ב-PATH כברירת מחדל): `expo
 
 ## מצב
 
-- שלב 0 (תשתית) הושלם 30/09/2026. הבא: שלב 1 (ליבה).
+- שלב 0 (תשתית) ושלב 1 (ליבה, כולל PIN ו-CSV) הושלמו 30/09/2026. הבא: שלב 2 (כרטיסים).
+- הבעלים ביקש לבנות את כל השלבים ברצף, עם commit בסוף כל שלב (בדיקות ירוקות). שאלות כספיות פתוחות: `// DECISION` בקוד ורשימה בסיכום.
+- פרסום: GitHub Pages דרך `.github/workflows/deploy.yml` (כמו Fitness App).
 - עיצוב נבחר: כיוון 4 "בנק דיגיטלי" (SPEC 8). tokens ב-`src/index.css`.
 - כל שינוי סכמה: `db.version(n+1)` חדש ב-`src/db/db.ts` + צעד ב-`MIGRATIONS` ב-`src/services/backup.ts`.
