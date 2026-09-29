@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Card, Category, InstallmentPlan, Institution, Payee, Transaction } from '../domain/schemas';
+import type { Account, Card, Category, InstallmentPlan, Institution, Payee, Recurring, Transaction } from '../domain/schemas';
+import { SETTINGS_ID } from '../domain/schemas';
+import { computeBudget, type BudgetSummary } from '../calc/budget';
+import { computeForecast, type Forecast } from '../calc/forecast';
 import { cardStatus, spreadInstallments, type CardStatus } from '../calc/cards';
 import type { SpreadInstallments } from '../calc/cashflow';
 import { loadCardData, type CardData } from '../services/cards';
-import { balancesByAccount } from '../calc/balance';
+import { accountBalance, balancesByAccount } from '../calc/balance';
 import { USER_DATA_TABLES } from '../db/db';
 import { hasUserData } from '../services/settings';
 
@@ -73,4 +76,62 @@ export function useSpread(): SpreadInstallments | undefined {
   const plans = usePlans();
   const cards = useCards();
   return useMemo(() => (plans && cards ? spreadInstallments(plans, new Map(cards.map((c) => [c.id, c]))) : undefined), [plans, cards]);
+}
+
+export function useRecurring(): Recurring[] | undefined {
+  return useLiveQuery(() => db.recurring.filter((r) => !r.deletedAt).toArray(), []);
+}
+
+export function usePending(): Transaction[] | undefined {
+  return useLiveQuery(() => db.transactions.where('status').equals('pending').filter((t) => !t.deletedAt).toArray(), []);
+}
+
+/** Budget for a month (SPEC 10.5), live. */
+export function useBudget(month: string): BudgetSummary | undefined {
+  const settings = useLiveQuery(() => db.settings.get(SETTINGS_ID), []);
+  const spread = useSpread();
+  return useLiveQuery(async () => {
+    if (!settings) return undefined;
+    const [categories, overrides, txs] = await Promise.all([
+      db.categories.toArray(),
+      db.budgetOverrides.where('month').equals(month).toArray(),
+      db.transactions.where('date').between(`${month}-01`, `${month}-31`, true, true).toArray(),
+    ]);
+    // Installment charges of this month may come from purchases in earlier months.
+    const chargeTxIds = (spread?.charges ?? []).filter((c) => c.chargeDate.startsWith(month)).map((c) => c.transactionId);
+    const extra = chargeTxIds.length ? await db.transactions.bulkGet(chargeTxIds) : [];
+    const all = [...txs, ...extra.filter((t): t is Transaction => !!t && !txs.some((x) => x.id === t.id))];
+    return computeBudget(month, categories, overrides, all, { includeRecurring: settings.includeRecurringInBudget, spread });
+  }, [month, settings, spread]);
+}
+
+/** Balance forecast for a bank account (SPEC 10.9), live. */
+export function useForecast(accountId: string | undefined, today: string, days: number): Forecast | undefined {
+  return useLiveQuery(async () => {
+    if (!accountId) return undefined;
+    const account = await db.accounts.get(accountId);
+    if (!account) return undefined;
+    const [txs, recurring, cards] = await Promise.all([
+      db.transactions.filter((t) => !t.deletedAt && (t.accountId === accountId || t.toAccountId === accountId)).toArray(),
+      db.recurring.filter((r) => !r.deletedAt).toArray(),
+      db.cards.filter((c) => !c.deletedAt).toArray(),
+    ]);
+    const billed = cards.filter((c) => c.kind === 'credit' && c.billingAccountId === accountId && c.status === 'active');
+    const statements = [];
+    for (const card of billed) {
+      const d = await loadCardData(db, card);
+      statements.push(...d.statements.filter((s) => !d.paidChargeDates.has(s.chargeDate)).map((s) => ({ ...s, cardName: card.name })));
+    }
+    return computeForecast({
+      accountId,
+      today,
+      days,
+      balanceToday: accountBalance(accountId, txs),
+      overdraftLimit: account.overdraftLimit,
+      pending: txs.filter((t) => t.status === 'pending'),
+      recurring,
+      cards,
+      statements,
+    });
+  }, [accountId, today, days]);
 }

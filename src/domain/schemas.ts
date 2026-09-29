@@ -272,8 +272,12 @@ export const Recurring = z
     amountAgorot: PositiveAgorot.optional(),
     frequency: Frequency,
     nextDueDate: IsoDate,
+    // DECISION (10.4): the original day of month, to return to after a short month (31 → 28/02 → 31/03).
+    anchorDay: z.int().min(1).max(31).optional(),
     accountId: optionalId,
     cardId: optionalId,
+    // DECISION: destination account for kind=transfer (standing order to savings).
+    toAccountId: optionalId,
     categoryId: optionalId,
     paymentMethod: PaymentMethod.optional(),
     status: z.enum(['active', 'inactive', 'grace_period', 'trial']),
@@ -296,6 +300,12 @@ export const Recurring = z
     }
     if (r.frequency !== 'usage_based' && r.amountAgorot === undefined) {
       ctx.addIssue({ code: 'custom', message: 'חובה סכום', path: ['amountAgorot'] });
+    }
+    if (!r.accountId && !r.cardId) {
+      ctx.addIssue({ code: 'custom', message: 'חובה חשבון או כרטיס', path: ['accountId'] });
+    }
+    if (r.kind === 'transfer' && (!r.toAccountId || r.toAccountId === r.accountId)) {
+      ctx.addIssue({ code: 'custom', message: 'הוראת קבע דורשת חשבון יעד אחר', path: ['toAccountId'] });
     }
   });
 

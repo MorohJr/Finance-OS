@@ -6,12 +6,16 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useCards, useCardsData, useCategories, useHasData, useInstitutions, usePayees, useSpread, useTransactions } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions } from '../data';
+import { ForecastEvents } from '../components/ForecastEvents';
+import { ProgressBar } from '../components/ProgressBar';
+import { upcomingReminders } from '../../calc/recurring';
+import { budgetState } from '../../calc/budget';
 import { CardSummary } from '../components/CardSummary';
 import { usePlatform, useSettings } from '../hooks';
 import { isBackupDue } from '../../calc/reminders';
 import { currentMonthIL, formatDisplayDate, todayIL } from '../../calc/dates';
-import { monthRange, summarizeFlows, UNCATEGORIZED } from '../../calc/cashflow';
+import { monthRange, summarizeFlows } from '../../calc/cashflow';
 import { computeNetWorth } from '../../calc/netWorth';
 import { sortTransactions } from '../../calc/transactionFilter';
 import { isIos } from '../../services/platform';
@@ -64,17 +68,16 @@ export function HomeScreen() {
     () => computeNetWorth({ accountBalances: active.map((a) => balances.get(a.id) ?? 0), cardOpenStatements: cardTotals.open, cardFutureInstallments: cardTotals.future }),
     [active, balances, cardTotals],
   );
+  const today = todayIL();
+  const budget = useBudget(currentMonthIL());
+  const pending = usePending();
+  const recurring = useRecurring();
+  const primaryBank = active.find((a) => a.kind === 'bank' && a.isVisibleOnDashboard) ?? active.find((a) => a.kind === 'bank');
+  const forecast30 = useForecast(primaryBank?.id, today, 30);
+  const reminders = useMemo(() => upcomingReminders(recurring ?? [], today, 30), [recurring, today]);
+  const recurringById = byId(recurring);
   const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), spread }), [txs, spread]);
   const recent = useMemo(() => sortTransactions(txs ?? []).slice(0, 5), [txs]);
-  const topCategories = useMemo(
-    () =>
-      [...month.expenseByCategory.entries()]
-        .filter(([, v]) => v > 0)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5),
-    [month],
-  );
-  const topMax = topCategories[0]?.[1] ?? 1;
 
   const backupDue = settings && hasData !== undefined && isBackupDue(settings.lastBackupAt, hasData);
   const lastBackupLabel = settings?.lastBackupAt ? formatDisplayDate(todayIL(new Date(settings.lastBackupAt))) : he.banners.backupNever;
@@ -124,7 +127,19 @@ export function HomeScreen() {
           <Metric label={H.liquid} to="/accounts">
             {active.length ? <Money agorot={nw.liquidAssets} /> : undefined}
           </Metric>
-          <Metric label={H.budget} to="/soon/budget" />
+          <Metric label={H.budget} to="/plan/budget">
+            {budget && budget.totalBudget > 0 ? (
+              <>
+                <Money agorot={budget.totalSpent} />
+                <div className="mt-1.5">
+                  <ProgressBar {...budgetState(budget.totalSpent, budget.totalBudget)} label={H.budget} />
+                </div>
+                <p className="mt-1 text-xs font-normal text-muted">
+                  {he.budget.left} <Money agorot={budget.totalRemaining} />
+                </p>
+              </>
+            ) : undefined}
+          </Metric>
           <Metric label={H.cashflow} to={`/transactions?from=${monthRange(currentMonthIL()).from}&to=${monthRange(currentMonthIL()).to}`}>
             {txs?.length ? <Money agorot={month.net} tone={month.net >= 0 ? 'income' : 'expense'} /> : undefined}
           </Metric>
@@ -177,6 +192,48 @@ export function HomeScreen() {
           </section>
         )}
 
+        {(pending ?? []).length > 0 && (
+          <Link to="/plan/recurring" className="flex min-h-12 items-center gap-2 rounded-card bg-warning-soft px-4 text-sm font-medium text-warning">
+            <Icon name="alert" size={18} />
+            {H.pendingBanner((pending ?? []).length)}
+          </Link>
+        )}
+
+        {primaryBank && forecast30 && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{he.forecast.upcoming30}</SectionTitle>
+              <Link to={`/plan/forecast?account=${primaryBank.id}&days=30`} className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <div className={`mb-2 flex items-center justify-between rounded-2xl px-4 py-3 ${forecast30.belowZero ? 'bg-warning-soft' : 'bg-surface'} border border-line`}>
+              <span className="text-sm">
+                {he.forecast.forecastBalance} · {primaryBank.name}
+              </span>
+              <Money agorot={forecast30.endBalance} tone={forecast30.endBalance < 0 ? 'expense' : 'plain'} className="font-medium" />
+            </div>
+            {forecast30.belowZero && <p className="mb-2 px-1 text-xs text-warning">{he.forecast.belowZero(formatDisplayDate(forecast30.minDate))}</p>}
+            <ForecastEvents events={forecast30.events} limit={6} />
+          </section>
+        )}
+
+        {reminders.length > 0 && (
+          <section>
+            <SectionTitle>{H.renewSoon}</SectionTitle>
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+              {reminders.slice(0, 5).map((r) => (
+                <Link key={`${r.recurringId}-${r.kind}`} to={`/plan/recurring/${r.recurringId}`} className="flex min-h-12 items-center justify-between px-4 py-2 text-sm">
+                  <span>
+                    {recurringById.get(r.recurringId)?.name} · <span className="text-muted">{he.recurring.reminders[r.kind]}</span>
+                  </span>
+                  <span className="num text-muted">{formatDisplayDate(r.date)}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         {active.length > 0 && (
           <section>
             <SectionTitle>{H.recent}</SectionTitle>
@@ -194,33 +251,34 @@ export function HomeScreen() {
           </section>
         )}
 
-        {topCategories.length > 0 && (
+        {budget && budget.lines.some((l) => l.spent > 0) && (
           <section className="pb-2">
-            <SectionTitle>{H.topCategories}</SectionTitle>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.topCategories}</SectionTitle>
+              <Link to="/plan/budget" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
             <Card className="flex flex-col gap-3">
-              {topCategories.map(([catId, spent]) => {
-                const c = catId === UNCATEGORIZED ? undefined : categories.get(catId);
-                const budget = c?.monthlyBudget;
-                const pct = Math.min(100, Math.round(((budget || topMax) > 0 ? spent / (budget || topMax) : 0) * 100));
-                return (
-                  <div key={catId}>
+              {budget.lines
+                .filter((l) => l.spent > 0)
+                .slice(0, 5)
+                .map((l) => (
+                  <div key={l.categoryId} className="flex flex-col gap-1">
                     <div className="flex justify-between text-sm">
-                      <span>{c ? categoryLabel(c, categories) : H.uncategorized}</span>
+                      <span>{categoryLabel(categories.get(l.categoryId), categories)}</span>
                       <span className="flex gap-1">
-                        <Money agorot={spent} />
-                        {budget ? (
+                        <Money agorot={l.spent} />
+                        {l.budget !== null && (
                           <span className="text-muted">
-                            / <Money agorot={budget} />
+                            / <Money agorot={l.budget} />
                           </span>
-                        ) : null}
+                        )}
                       </span>
                     </div>
-                    <div className="mt-1 h-2 rounded-full bg-surface-2">
-                      <div className={`h-2 rounded-full ${budget && spent > budget ? 'bg-expense' : 'bg-brand'}`} style={{ width: `${pct}%` }} />
-                    </div>
+                    {l.budget !== null && <ProgressBar usedBp={l.usedBp} state={l.state} label={categoryLabel(categories.get(l.categoryId), categories)} />}
                   </div>
-                );
-              })}
+                ))}
             </Card>
           </section>
         )}

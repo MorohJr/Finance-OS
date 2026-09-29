@@ -13,6 +13,10 @@ import { AccountFormScreen } from './screens/AccountFormScreen';
 import { CategoriesScreen } from './screens/CategoriesScreen';
 import { CardFormScreen } from './screens/CardFormScreen';
 import { CardDetailScreen } from './screens/CardDetailScreen';
+import { BudgetScreen } from './screens/BudgetScreen';
+import { RecurringScreen } from './screens/RecurringScreen';
+import { RecurringFormScreen } from './screens/RecurringFormScreen';
+import { ForecastScreen } from './screens/ForecastScreen';
 import { PlanScreen } from './screens/PlanScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -57,6 +61,11 @@ export function App() {
             <Route path="cards/:id" element={<CardDetailScreen />} />
             <Route path="cards/:id/edit" element={<Fresh>{(k) => <CardFormScreen key={k} />}</Fresh>} />
             <Route path="plan" element={<PlanScreen />} />
+            <Route path="plan/budget" element={<BudgetScreen />} />
+            <Route path="plan/recurring" element={<RecurringScreen />} />
+            <Route path="plan/recurring/new" element={<Fresh>{(k) => <RecurringFormScreen key={k} />}</Fresh>} />
+            <Route path="plan/recurring/:id" element={<Fresh>{(k) => <RecurringFormScreen key={k} />}</Fresh>} />
+            <Route path="plan/forecast" element={<ForecastScreen />} />
             <Route path="more" element={<MoreScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="settings/categories" element={<CategoriesScreen />} />

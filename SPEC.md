@@ -263,7 +263,9 @@ src/
 | amountAgorot | int | ריק ל-`usage_based` |
 | frequency ✱ | enum | `usage_based`, `daily`, `weekly`, `monthly`, `bimonthly`, `quarterly`, `semiannual`, `yearly` |
 | nextDueDate ✱ | date | מתקדם אוטומטית (10.4) |
+| anchorDay | 1..31 | היום המקורי בחודש, כדי לחזור אליו אחרי חודש קצר (10.4). נקבע מה-nextDueDate הראשון |
 | accountId / cardId | → | אמצעי תשלום |
+| toAccountId | → Account | חשבון היעד, רק ל-`transfer` (הוראת קבע לחיסכון) |
 | categoryId | → Category | |
 | paymentMethod | enum | כמו ב-Transaction |
 | status ✱ | enum | bill: `active`, `inactive`, `grace_period`. subscription: `active`, `inactive`, `trial` |

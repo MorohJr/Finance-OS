@@ -6,6 +6,7 @@ import { SETTINGS_ID, type Settings } from '../domain/schemas';
 import { hasUserData } from '../services/settings';
 import { isInstalledApp, requestPersistentStorage } from '../services/platform';
 import { syncCardStatements } from '../services/cards';
+import { runRecurringAutoCreate } from '../services/recurring';
 
 export function useSettings(): Settings | undefined {
   return useLiveQuery(() => db.settings.get(SETTINGS_ID), []);
@@ -60,11 +61,22 @@ export function useGoBack(fallback: string): () => void {
  */
 export function useStartupJobs(): void {
   useEffect(() => {
-    const run = () => {
-      void syncCardStatements(db).catch((e) => console.error('card sync failed', e));
+    let running = false;
+    const run = async () => {
+      if (running) return;
+      running = true;
+      try {
+        // Recurring first: an auto-created card charge must be in the statement before it closes.
+        await runRecurringAutoCreate(db);
+        await syncCardStatements(db);
+      } catch (e) {
+        console.error('startup jobs failed', e);
+      } finally {
+        running = false;
+      }
     };
-    run();
-    const onVisible = () => document.visibilityState === 'visible' && run();
+    void run();
+    const onVisible = () => document.visibilityState === 'visible' && void run();
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
