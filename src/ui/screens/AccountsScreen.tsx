@@ -4,7 +4,9 @@ import { SectionTitle } from '../components/Card';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { Icon } from '../components/Icon';
-import { byId, useAccounts, useBalances, useInstitutions, useTransactions } from '../data';
+import { byId, useAccounts, useBalances, useCards, useCardsData, useInstitutions, useTransactions } from '../data';
+import { CardSummary } from '../components/CardSummary';
+import { todayIL } from '../../calc/dates';
 import type { Account } from '../../domain/schemas';
 import { sumAgorot } from '../../calc/money';
 import { he } from '../strings.he';
@@ -37,6 +39,9 @@ export function AccountsScreen() {
   const txs = useTransactions();
   const balances = useBalances(accounts, txs);
   const institutions = byId(useInstitutions());
+  const cards = useCards();
+  const cardsData = useCardsData(todayIL());
+  const statusByCard = new Map((cardsData ?? []).map((c) => [c.data.card.id, c.status]));
   if (!accounts) return <ScreenHeader title={he.accounts.title} back />;
 
   const active = accounts.filter((a) => a.status === 'active');
@@ -79,6 +84,25 @@ export function AccountsScreen() {
             </section>
           );
         })}
+
+        <section>
+          <div className="flex items-center justify-between px-1">
+            <SectionTitle>{he.cards.title}</SectionTitle>
+            <Link to="/cards/new" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-text">
+              <Icon name="plus" size={16} />
+              {he.cards.add}
+            </Link>
+          </div>
+          {(cards ?? []).filter((c) => c.status === 'active').length > 0 && (
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+              {(cards ?? [])
+                .filter((c) => c.status === 'active')
+                .map((c) => (
+                  <CardSummary key={c.id} card={c} status={statusByCard.get(c.id)} issuer={institutions.get(c.issuerId)} />
+                ))}
+            </div>
+          )}
+        </section>
 
         {closed.length > 0 && (
           <details className="group">

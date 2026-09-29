@@ -13,8 +13,17 @@ export const UNCATEGORIZED = '__uncategorized__';
 
 type FlowTx = Pick<
   Transaction,
-  'kind' | 'amountAgorot' | 'date' | 'categoryId' | 'context' | 'status' | 'deletedAt' | 'business' | 'links'
+  'id' | 'kind' | 'amountAgorot' | 'date' | 'categoryId' | 'context' | 'status' | 'deletedAt' | 'business' | 'links'
 >;
+
+/**
+ * Installment purchases recognized by charge month (`budgetRecognition = spread`, SPEC 10.3):
+ * the purchase itself is skipped and each charge counts on its charge date.
+ */
+export interface SpreadInstallments {
+  transactionIds: ReadonlySet<string>;
+  charges: readonly { transactionId: string; chargeDate: string; amountAgorot: number }[];
+}
 
 export interface FlowOptions {
   from: string; // inclusive YYYY-MM-DD
@@ -25,6 +34,7 @@ export interface FlowOptions {
    * interest (income). Supplied by the loans module (SPEC 10.6, 10.7); default: none.
    */
   interestPart?: (t: FlowTx) => number;
+  spread?: SpreadInstallments;
 }
 
 export interface FlowSummary {
@@ -60,8 +70,20 @@ export function summarizeFlows(txs: readonly FlowTx[], options: FlowOptions): Fl
   const expenseByCategory = new Map<string, number>();
   const incomeByCategory = new Map<string, number>();
 
+  const spreadIds = options.spread?.transactionIds ?? new Set<string>();
+  const byId = new Map(txs.map((t) => [t.id, t]));
+  for (const c of options.spread?.charges ?? []) {
+    const t = byId.get(c.transactionId);
+    if (!t || t.deletedAt || t.status !== 'cleared' || t.kind !== 'expense') continue;
+    if (c.chargeDate < options.from || c.chargeDate > options.to) continue;
+    if (ctx !== 'all' && t.context !== ctx) continue;
+    expenseParts.push(c.amountAgorot);
+    add(expenseByCategory, t.categoryId, c.amountAgorot);
+  }
+
   for (const t of txs) {
     if (t.deletedAt || t.status !== 'cleared') continue;
+    if (spreadIds.has(t.id)) continue;
     if (t.date < options.from || t.date > options.to) continue;
     if (ctx !== 'all' && t.context !== ctx) continue;
 

@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Category, Institution, Payee, Transaction } from '../domain/schemas';
+import type { Account, Card, Category, InstallmentPlan, Institution, Payee, Transaction } from '../domain/schemas';
+import { cardStatus, spreadInstallments, type CardStatus } from '../calc/cards';
+import type { SpreadInstallments } from '../calc/cashflow';
+import { loadCardData, type CardData } from '../services/cards';
 import { balancesByAccount } from '../calc/balance';
 import { USER_DATA_TABLES } from '../db/db';
 import { hasUserData } from '../services/settings';
@@ -46,4 +49,28 @@ export function categoryLabel(c: Category | undefined, all: Map<string, Category
 
 export function useHasData(): boolean | undefined {
   return useLiveQuery(() => hasUserData(db, USER_DATA_TABLES), []);
+}
+
+export function useCards(): Card[] | undefined {
+  return useLiveQuery(() => db.cards.filter((c) => !c.deletedAt).toArray(), []);
+}
+
+export function usePlans(): InstallmentPlan[] | undefined {
+  return useLiveQuery(() => db.installmentPlans.filter((p) => !p.deletedAt).toArray(), []);
+}
+
+/** Live statements and limit status for every credit card. */
+export function useCardsData(today: string): { data: CardData; status: CardStatus }[] | undefined {
+  return useLiveQuery(async () => {
+    const cards = await db.cards.filter((c) => !c.deletedAt && c.kind === 'credit').toArray();
+    const all = await Promise.all(cards.map((c) => loadCardData(db, c)));
+    return all.map((data) => ({ data, status: cardStatus(data.card, data.statements, data.paidChargeDates, today) }));
+  }, [today]);
+}
+
+/** Installment purchases counted by charge month, for cash flow. */
+export function useSpread(): SpreadInstallments | undefined {
+  const plans = usePlans();
+  const cards = useCards();
+  return useMemo(() => (plans && cards ? spreadInstallments(plans, new Map(cards.map((c) => [c.id, c]))) : undefined), [plans, cards]);
 }

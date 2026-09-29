@@ -6,7 +6,8 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useCategories, useHasData, useInstitutions, usePayees, useTransactions } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useCards, useCardsData, useCategories, useHasData, useInstitutions, usePayees, useSpread, useTransactions } from '../data';
+import { CardSummary } from '../components/CardSummary';
 import { usePlatform, useSettings } from '../hooks';
 import { isBackupDue } from '../../calc/reminders';
 import { currentMonthIL, formatDisplayDate, todayIL } from '../../calc/dates';
@@ -14,6 +15,7 @@ import { monthRange, summarizeFlows, UNCATEGORIZED } from '../../calc/cashflow';
 import { computeNetWorth } from '../../calc/netWorth';
 import { sortTransactions } from '../../calc/transactionFilter';
 import { isIos } from '../../services/platform';
+import { sumAgorot } from '../../calc/money';
 import { he } from '../strings.he';
 
 const H = he.home;
@@ -47,9 +49,22 @@ export function HomeScreen() {
   const payees = byId(usePayees());
   const institutions = byId(useInstitutions());
 
+  const cards = useCards();
+  const cardsData = useCardsData(todayIL());
+  const spread = useSpread();
   const active = (accounts ?? []).filter((a) => a.status === 'active');
-  const nw = useMemo(() => computeNetWorth({ accountBalances: active.map((a) => balances.get(a.id) ?? 0) }), [active, balances]);
-  const month = useMemo(() => summarizeFlows(txs ?? [], monthRange(currentMonthIL())), [txs]);
+  const cardTotals = useMemo(() => {
+    const list = cardsData ?? [];
+    return {
+      open: sumAgorot(list.map((c) => c.status.openStatementTotal)),
+      future: sumAgorot(list.map((c) => c.status.futureInstallmentsTotal)),
+    };
+  }, [cardsData]);
+  const nw = useMemo(
+    () => computeNetWorth({ accountBalances: active.map((a) => balances.get(a.id) ?? 0), cardOpenStatements: cardTotals.open, cardFutureInstallments: cardTotals.future }),
+    [active, balances, cardTotals],
+  );
+  const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), spread }), [txs, spread]);
   const recent = useMemo(() => sortTransactions(txs ?? []).slice(0, 5), [txs]);
   const topCategories = useMemo(
     () =>
@@ -149,13 +164,26 @@ export function HomeScreen() {
           </section>
         )}
 
+        {(cards ?? []).some((c) => c.status === 'active') && (
+          <section>
+            <SectionTitle>{H.cards}</SectionTitle>
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+              {(cards ?? [])
+                .filter((c) => c.status === 'active')
+                .map((c) => (
+                  <CardSummary key={c.id} card={c} status={cardsData?.find((d) => d.data.card.id === c.id)?.status} issuer={institutions.get(c.issuerId)} />
+                ))}
+            </div>
+          </section>
+        )}
+
         {active.length > 0 && (
           <section>
             <SectionTitle>{H.recent}</SectionTitle>
             {recent.length ? (
               <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
                 {recent.map((t) => (
-                  <TransactionRow key={t.id} t={t} accounts={accountMap} categories={categories} payees={payees} />
+                  <TransactionRow key={t.id} t={t} accounts={accountMap} categories={categories} payees={payees} cards={byId(cards)} />
                 ))}
               </div>
             ) : (

@@ -11,11 +11,13 @@ import { AccountsScreen } from './screens/AccountsScreen';
 import { AccountDetailScreen } from './screens/AccountDetailScreen';
 import { AccountFormScreen } from './screens/AccountFormScreen';
 import { CategoriesScreen } from './screens/CategoriesScreen';
+import { CardFormScreen } from './screens/CardFormScreen';
+import { CardDetailScreen } from './screens/CardDetailScreen';
 import { PlanScreen } from './screens/PlanScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ComingSoonScreen } from './screens/ComingSoonScreen';
-import { useApplyTheme, useSettings } from './hooks';
+import { useApplyTheme, useSettings, useStartupJobs } from './hooks';
 
 /** Forms keep local state, so each navigation gets a fresh instance (e.g. ➕ from inside a form). */
 function Fresh({ children }: { children: (key: string) => ReactNode }) {
@@ -37,6 +39,7 @@ function Layout() {
 export function App() {
   const settings = useSettings();
   useApplyTheme(settings);
+  useStartupJobs();
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <ToastProvider>
@@ -50,6 +53,9 @@ export function App() {
             <Route path="accounts/new" element={<Fresh>{(k) => <AccountFormScreen key={k} />}</Fresh>} />
             <Route path="accounts/:id" element={<AccountDetailScreen />} />
             <Route path="accounts/:id/edit" element={<Fresh>{(k) => <AccountFormScreen key={k} />}</Fresh>} />
+            <Route path="cards/new" element={<Fresh>{(k) => <CardFormScreen key={k} />}</Fresh>} />
+            <Route path="cards/:id" element={<CardDetailScreen />} />
+            <Route path="cards/:id/edit" element={<Fresh>{(k) => <CardFormScreen key={k} />}</Fresh>} />
             <Route path="plan" element={<PlanScreen />} />
             <Route path="more" element={<MoreScreen />} />
             <Route path="settings" element={<SettingsScreen />} />

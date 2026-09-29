@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import type { Account, Category, Payee, Transaction } from '../../domain/schemas';
+import type { Account, Card, Category, Payee, Transaction } from '../../domain/schemas';
 import { Money } from './Money';
 import { Icon, type IconName } from './Icon';
 import { displayAmount } from '../format';
@@ -21,6 +21,7 @@ interface Props {
   accounts: Map<string, Account>;
   categories: Map<string, Category>;
   payees: Map<string, Payee>;
+  cards?: Map<string, Card>;
   /** Show the amount as its effect on this account. */
   accountId?: string;
 }
@@ -29,11 +30,11 @@ export function transactionTitle(t: Transaction, payees: Map<string, Payee>, cat
   return (t.payeeId && payees.get(t.payeeId)?.name) || t.description || categoryLabel(t.categoryId ? categories.get(t.categoryId) : undefined, categories) || he.kind[t.kind];
 }
 
-export function TransactionRow({ t, accounts, categories, payees, accountId }: Props) {
+export function TransactionRow({ t, accounts, categories, payees, cards, accountId }: Props) {
   const { agorot, tone } = displayAmount(t, accountId);
   const category = t.categoryId ? categories.get(t.categoryId) : undefined;
   const title = transactionTitle(t, payees, categories);
-  const accountName = t.kind === 'transfer' ? `${accounts.get(t.accountId ?? '')?.name ?? ''} ← ${accounts.get(t.toAccountId ?? '')?.name ?? ''}` : accounts.get(t.accountId ?? '')?.name;
+  const accountName = t.kind === 'transfer' ? `${accounts.get(t.accountId ?? '')?.name ?? ''} ← ${accounts.get(t.toAccountId ?? '')?.name ?? ''}` : t.cardId ? (cards?.get(t.cardId)?.name ?? '') : accounts.get(t.accountId ?? '')?.name;
   const sub = [t.kind === 'expense' || t.kind === 'income' ? categoryLabel(category, categories) || he.home.uncategorized : he.kind[t.kind], accountName]
     .filter(Boolean)
     .join(' · ');

@@ -7,7 +7,7 @@ import { Money } from '../components/Money';
 import { BottomSheet } from '../components/BottomSheet';
 import { Field, inputCls, secondaryBtn, Segmented } from '../components/Form';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useCategories, usePayees, useTransactions } from '../data';
+import { byId, categoryLabel, useAccounts, useCards, useCategories, usePayees, useTransactions } from '../data';
 import { allTags, filterTransactions, groupByDay, sortTransactions, type TransactionFilter } from '../../calc/transactionFilter';
 import { summarizeFlows } from '../../calc/cashflow';
 import { formatDayHeader } from '../dates';
@@ -23,6 +23,7 @@ function useFilter(): [TransactionFilter, (f: TransactionFilter) => void] {
   const filter: TransactionFilter = {
     text: params.get('q') ?? undefined,
     accountId: params.get('account') ?? undefined,
+    cardId: params.get('card') ?? undefined,
     categoryId: params.get('category') ?? undefined,
     tag: params.get('tag') ?? undefined,
     context: (params.get('context') as TransactionFilter['context']) ?? undefined,
@@ -34,6 +35,7 @@ function useFilter(): [TransactionFilter, (f: TransactionFilter) => void] {
     const next = new URLSearchParams();
     if (f.text) next.set('q', f.text);
     if (f.accountId) next.set('account', f.accountId);
+    if (f.cardId) next.set('card', f.cardId);
     if (f.categoryId) next.set('category', f.categoryId);
     if (f.tag) next.set('tag', f.tag);
     if (f.context) next.set('context', f.context);
@@ -52,6 +54,8 @@ export function TransactionsScreen() {
   const accounts = byId(accountsList);
   const categories = byId(categoriesList);
   const payees = byId(usePayees());
+  const cardsList = useCards();
+  const cards = byId(cardsList);
   const [filter, setFilter] = useFilter();
   const [sheet, setSheet] = useState(false);
   const [limit, setLimit] = useState(PAGE);
@@ -59,14 +63,14 @@ export function TransactionsScreen() {
   const filtered = useMemo(() => {
     if (!txs) return [];
     const extra = (t: (typeof txs)[number]) =>
-      [t.payeeId && payees.get(t.payeeId)?.name, categoryLabel(t.categoryId ? categories.get(t.categoryId) : undefined, categories), t.accountId && accounts.get(t.accountId)?.name].filter(Boolean).join(' ');
+      [t.payeeId && payees.get(t.payeeId)?.name, categoryLabel(t.categoryId ? categories.get(t.categoryId) : undefined, categories), t.accountId && accounts.get(t.accountId)?.name, t.cardId && cards.get(t.cardId)?.name].filter(Boolean).join(' ');
     return sortTransactions(filterTransactions(txs, filter, extra));
-  }, [txs, filter, payees, categories, accounts]);
+  }, [txs, filter, payees, categories, accounts, cards]);
 
   const flows = useMemo(() => summarizeFlows(filtered, { from: '0000-01-01', to: '9999-12-31' }), [filtered]);
   const groups = groupByDay(filtered.slice(0, limit));
   const tags = useMemo(() => allTags(txs ?? []), [txs]);
-  const activeFilters = [filter.accountId, filter.categoryId, filter.tag, filter.context, filter.kinds?.length, filter.from, filter.to].filter(Boolean).length;
+  const activeFilters = [filter.accountId, filter.cardId, filter.categoryId, filter.tag, filter.context, filter.kinds?.length, filter.from, filter.to].filter(Boolean).length;
 
   return (
     <>
@@ -122,7 +126,7 @@ export function TransactionsScreen() {
             <h2 className="mb-1 px-1 text-xs font-medium text-muted">{formatDayHeader(g.date)}</h2>
             <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
               {g.items.map((t) => (
-                <TransactionRow key={t.id} t={t} accounts={accounts} categories={categories} payees={payees} accountId={filter.accountId} />
+                <TransactionRow key={t.id} t={t} accounts={accounts} categories={categories} payees={payees} cards={cards} accountId={filter.accountId} />
               ))}
             </div>
           </section>
@@ -148,6 +152,20 @@ export function TransactionsScreen() {
               </select>
             )}
           </Field>
+          {(cardsList ?? []).length > 0 && (
+            <Field label={he.transactions.filterCard}>
+              {(p) => (
+                <select {...p} className={inputCls} value={filter.cardId ?? ''} onChange={(e) => setFilter({ ...filter, cardId: e.target.value || undefined })}>
+                  <option value="">{he.common.all}</option>
+                  {(cardsList ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {`${c.name} ·· ${c.last4}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+          )}
           <Field label={T.filterCategory}>
             {(p) => (
               <select {...p} className={inputCls} value={filter.categoryId ?? ''} onChange={(e) => setFilter({ ...filter, categoryId: e.target.value || undefined })}>

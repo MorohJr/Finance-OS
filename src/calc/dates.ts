@@ -63,3 +63,55 @@ export function daysBetween(from: string, to: string): number {
 export function nowIso(now: Date = new Date()): string {
   return now.toISOString();
 }
+
+// ---------------------------------------------------------------------------
+// Calendar arithmetic on YYYY-MM-DD strings (timezone-free).
+// ---------------------------------------------------------------------------
+
+export function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function parts(iso: string): [number, number, number] {
+  return iso.split('-').map(Number) as [number, number, number];
+}
+
+function iso(y: number, m: number, d: number): string {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/**
+ * Adds months keeping the day of month (SPEC 10.4). If the month is shorter, uses its last day.
+ * `anchorDay` is the original day to return to in later months (e.g. 31 → 28/02 → 31/03).
+ */
+export function addMonths(isoDate: string, months: number, anchorDay?: number): string {
+  const [y, m, d] = parts(isoDate);
+  const day = anchorDay ?? d;
+  const total = y * 12 + (m - 1) + months;
+  const ny = Math.floor(total / 12);
+  const nm = (total % 12) + 1;
+  return iso(ny, nm, Math.min(day, daysInMonth(ny, nm)));
+}
+
+export function addDays(isoDate: string, days: number): string {
+  const [y, m, d] = parts(isoDate);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Same month, given day (clamped to the month's length). */
+export function withDay(isoDate: string, day: number): string {
+  const [y, m] = parts(isoDate);
+  return iso(y, m, Math.min(day, daysInMonth(y, m)));
+}
+
+export function dayOfMonth(isoDate: string): number {
+  return parts(isoDate)[2];
+}
+
+/** Whole months from a to b by calendar month (YYYY-MM or YYYY-MM-DD). */
+export function monthsBetween(a: string, b: string): number {
+  const [ya, ma] = parts(a.slice(0, 7) + '-01');
+  const [yb, mb] = parts(b.slice(0, 7) + '-01');
+  return (yb - ya) * 12 + (mb - ma);
+}

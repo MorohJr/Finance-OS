@@ -68,6 +68,25 @@ describe('summarizeFlows', () => {
   });
 });
 
+describe('installments (10.3)', () => {
+  const purchase = tx({ kind: 'expense', amountAgorot: 100_000, cardId: 'c', date: '2026-03-20', categoryId: 'tv' });
+  const charges = [
+    { transactionId: purchase.id, chargeDate: '2026-04-10', amountAgorot: 33_334 },
+    { transactionId: purchase.id, chargeDate: '2026-05-10', amountAgorot: 33_333 },
+    { transactionId: purchase.id, chargeDate: '2026-06-10', amountAgorot: 33_333 },
+  ];
+  it('upfront: the whole purchase in the purchase month', () => {
+    expect(summarizeFlows([purchase], { from: '2026-03-01', to: '2026-03-31' }).expense).toBe(100_000);
+  });
+  it('spread: each charge in its charge month (DECISION 15.3 default)', () => {
+    const spread = { transactionIds: new Set([purchase.id]), charges };
+    expect(summarizeFlows([purchase], { from: '2026-03-01', to: '2026-03-31', spread }).expense).toBe(0);
+    const april = summarizeFlows([purchase], { from: '2026-04-01', to: '2026-04-30', spread });
+    expect(april.expense).toBe(33_334);
+    expect(april.expenseByCategory.get('tv')).toBe(33_334);
+  });
+});
+
 describe('months', () => {
   it('ranges and navigation', () => {
     expect(monthRange('2026-02')).toEqual({ from: '2026-02-01', to: '2026-02-28' });

@@ -5,6 +5,7 @@ import { db, USER_DATA_TABLES } from '../db/db';
 import { SETTINGS_ID, type Settings } from '../domain/schemas';
 import { hasUserData } from '../services/settings';
 import { isInstalledApp, requestPersistentStorage } from '../services/platform';
+import { syncCardStatements } from '../services/cards';
 
 export function useSettings(): Settings | undefined {
   return useLiveQuery(() => db.settings.get(SETTINGS_ID), []);
@@ -51,4 +52,20 @@ export function useGoBack(fallback: string): () => void {
   const navigate = useNavigate();
   const location = useLocation();
   return () => (location.key !== 'default' ? navigate(-1) : navigate(fallback, { replace: true }));
+}
+
+/**
+ * Jobs that run when the app opens and when it returns to the foreground (SPEC 10.2 closing card
+ * statements; later stages add recurring items and net worth snapshots).
+ */
+export function useStartupJobs(): void {
+  useEffect(() => {
+    const run = () => {
+      void syncCardStatements(db).catch((e) => console.error('card sync failed', e));
+    };
+    run();
+    const onVisible = () => document.visibilityState === 'visible' && run();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 }

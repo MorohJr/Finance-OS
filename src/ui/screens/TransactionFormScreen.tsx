@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { Field, MoneyInput, Segmented, dangerBtn, inputCls, primaryBtn } from '../components/Form';
+import { Field, MoneyInput, Segmented, Toggle, dangerBtn, inputCls, primaryBtn } from '../components/Form';
 import { useToast } from '../components/Toast';
-import { byId, categoryLabel, useAccounts, useCategories, usePayees } from '../data';
+import { byId, categoryLabel, useAccounts, useCards, useCategories, usePayees } from '../data';
 import { db } from '../../db/db';
 import type { Category, Transaction, TransactionKind } from '../../domain/schemas';
 import { PaymentMethod } from '../../domain/schemas';
-import { createTransaction, deleteTransaction, findOpeningBalance, updateTransaction, type TransactionInput } from '../../services/transactions';
+import { deleteTransaction, findOpeningBalance, type TransactionInput } from '../../services/transactions';
+import { deletePlanForTransaction, saveTransactionWithInstallments, syncCardStatements, type InstallmentInput } from '../../services/cards';
+import { cycleForDate, splitInstallments } from '../../calc/cards';
+import { formatAgorot } from '../../calc/money';
 import { findOrCreatePayee, rememberPayeeCategory } from '../../services/payees';
 import { ValidationError } from '../../services/entity';
 import { suggestCategory } from '../../calc/categoryRules';
@@ -16,7 +19,7 @@ import { parseAmountToAgorot } from '../../calc/money';
 import { formatDisplayDate, todayIL } from '../../calc/dates';
 import { agorotToInput } from '../format';
 import { he } from '../strings.he';
-import { useGoBack } from '../hooks';
+import { useGoBack, useSettings } from '../hooks';
 
 const F = he.txForm;
 const MAIN_KINDS = ['expense', 'income', 'transfer'] as const;
@@ -61,6 +64,15 @@ export function TransactionFormScreen() {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayIL());
   const [accountIdState, setAccountId] = useState(params.get('accountId') ?? '');
+  const [cardId, setCardId] = useState(params.get('cardId') ?? '');
+  const cards = useCards();
+  const settings = useSettings();
+  const [instOn, setInstOn] = useState(false);
+  const [instCount, setInstCount] = useState('3');
+  const [instKind, setInstKind] = useState<InstallmentInput['kind']>('installments');
+  const [instInterest, setInstInterest] = useState('');
+  const [instRecognition, setInstRecognition] = useState<InstallmentInput['budgetRecognition'] | undefined>();
+  const [instFirst, setInstFirst] = useState('');
   const [toAccountId, setToAccountId] = useState('');
   const [direction, setDirection] = useState<'in' | 'out'>('in');
   const [categoryId, setCategoryId] = useState('');
@@ -75,8 +87,12 @@ export function TransactionFormScreen() {
   const [saving, setSaving] = useState(false);
 
   // Defaults are derived, not stored: the first active account, and that account's context.
-  const accountId = accountIdState || (id ? '' : ((accounts ?? []).find((a) => a.status === 'active')?.id ?? ''));
-  const context: Transaction['context'] = contextState ?? (accounts ?? []).find((a) => a.id === accountId)?.context ?? 'personal';
+  const cardAllowed = kind === 'expense' || kind === 'refund';
+  const card = cardAllowed && cardId ? (cards ?? []).find((c) => c.id === cardId) : undefined;
+  const accountId = card ? '' : accountIdState || (id ? '' : ((accounts ?? []).find((a) => a.status === 'active')?.id ?? ''));
+  const context: Transaction['context'] = contextState ?? card?.context ?? (accounts ?? []).find((a) => a.id === accountId)?.context ?? 'personal';
+  const canInstall = card?.kind === 'credit' && kind === 'expense';
+  const recognition = instRecognition ?? settings?.defaultBudgetRecognition ?? 'spread';
   const activeAccounts = (accounts ?? []).filter((a) => a.status === 'active' || a.id === accountId || a.id === toAccountId);
 
   useEffect(() => {
@@ -88,7 +104,17 @@ export function TransactionFormScreen() {
       setKind(t.kind);
       setAmount(agorotToInput(t.amountAgorot));
       setDate(t.date);
-      setAccountId(t.accountId ?? '');
+      setAccountId(t.cardId ? '' : (t.accountId ?? ''));
+      setCardId(t.cardId ?? '');
+      const plan = await db.installmentPlans.where('transactionId').equals(t.id).filter((p) => !p.deletedAt).first();
+      if (plan) {
+        setInstOn(true);
+        setInstCount(String(plan.count));
+        setInstKind(plan.kind);
+        setInstInterest(agorotToInput(plan.interestTotalAgorot));
+        setInstRecognition(plan.budgetRecognition);
+        setInstFirst(plan.firstChargeDate);
+      }
       setToAccountId(t.toAccountId ?? '');
       setDirection(t.direction ?? 'in');
       setCategoryId(t.categoryId ?? '');
@@ -116,6 +142,14 @@ export function TransactionFormScreen() {
 
   const isSystemKind = !USER_KINDS.includes(kind);
 
+  const installmentPreview = useMemo(() => {
+    const total = parseAmountToAgorot(amount);
+    const n = Number(instCount);
+    if (!total || total <= 0 || !Number.isInteger(n) || n < 2 || n > 60) return '';
+    const [first = 0, rest = 0] = splitInstallments(total, n);
+    return he.installments.preview(formatAgorot(first), formatAgorot(rest), n);
+  }, [amount, instCount]);
+
   // A transaction dated before the account's opening balance is usually double-counted:
   // the opening balance already includes it. Warn, don't block.
   const opening = useLiveQuery(async () => (accountId ? findOpeningBalance(db, accountId) : undefined), [accountId]);
@@ -126,7 +160,12 @@ export function TransactionFormScreen() {
     const errs: Errors = {};
     const agorot = parseAmountToAgorot(amount);
     if (agorot === null || agorot <= 0) errs.amount = F.errors.amount;
-    if (!accountId) errs.account = F.errors.account;
+    if (!accountId && !card) errs.account = F.errors.account;
+    const count = Number(instCount);
+    const useInst = canInstall && instOn;
+    if (useInst && (!Number.isInteger(count) || count < 2 || count > 60)) errs.form = he.installments.countError;
+    const interest = useInst && instKind === 'credit' && instInterest.trim() ? parseAmountToAgorot(instInterest) : undefined;
+    if (interest === null) errs.form = he.txForm.errors.amount;
     if (kind === 'transfer' && (!toAccountId || toAccountId === accountId)) errs.toAccount = F.errors.toAccount;
     if (kind === 'adjustment' && !note.trim()) errs.note = F.errors.note;
     if (!date) errs.date = F.errors.date;
@@ -141,8 +180,8 @@ export function TransactionFormScreen() {
         kind,
         amountAgorot: agorot!,
         date,
-        accountId: accountId || undefined,
-        cardId: existing?.cardId,
+        accountId: card ? undefined : accountId || undefined,
+        cardId: card?.id,
         toAccountId: kind === 'transfer' ? toAccountId : undefined,
         direction: signed ? direction : undefined,
         categoryId: hasCategory(kind) ? categoryId || undefined : undefined,
@@ -156,8 +195,11 @@ export function TransactionFormScreen() {
         business: existing?.business,
         source: existing?.source,
       };
-      if (existing) await updateTransaction(db, existing.id, input);
-      else await createTransaction(db, input);
+      const inst: InstallmentInput | undefined = useInst
+        ? { count, kind: instKind, interestTotalAgorot: interest ?? undefined, budgetRecognition: recognition, firstChargeDate: instFirst || undefined }
+        : undefined;
+      await saveTransactionWithInstallments(db, existing?.id, input, inst);
+      if (card) await syncCardStatements(db);
       if (payee && categoryId) await rememberPayeeCategory(db, payee.id, categoryId);
       toast({ message: he.transactions.savedToast });
       goBack();
@@ -180,6 +222,7 @@ export function TransactionFormScreen() {
   async function onDelete() {
     if (!existing) return;
     const undo = await deleteTransaction(db, existing.id);
+    await deletePlanForTransaction(db, existing.id);
     toast({ message: he.transactions.deletedToast, action: { label: he.common.undo, run: () => void undo() } });
     goBack();
   }
@@ -264,8 +307,88 @@ export function TransactionFormScreen() {
             {accountSelect(F.fromAccount, accountId, setAccountId, errors.account)}
             {accountSelect(F.toAccount, toAccountId, setToAccountId, errors.toAccount, accountId)}
           </>
+        ) : cardAllowed && (cards ?? []).some((c) => c.status === 'active') ? (
+          <Field label={F.source} error={errors.account}>
+            {(p) => (
+              <select
+                {...p}
+                className={inputCls}
+                value={card ? `card:${card.id}` : accountId ? `acc:${accountId}` : ''}
+                onChange={(e) => {
+                  const [type, value = ''] = e.target.value.split(':');
+                  if (type === 'card') {
+                    setCardId(value);
+                  } else {
+                    setCardId('');
+                    setAccountId(value);
+                  }
+                }}
+              >
+                <option value="">—</option>
+                <optgroup label={F.accountsGroup}>
+                  {activeAccounts.map((a) => (
+                    <option key={a.id} value={`acc:${a.id}`}>
+                      {a.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label={F.cardsGroup}>
+                  {(cards ?? [])
+                    .filter((c) => c.status === 'active' || c.id === cardId)
+                    .map((c) => (
+                      <option key={c.id} value={`card:${c.id}`}>
+                        {`${c.name} ·· ${c.last4}`}
+                      </option>
+                    ))}
+                </optgroup>
+              </select>
+            )}
+          </Field>
         ) : (
           accountSelect(F.account, accountId, setAccountId, errors.account)
+        )}
+
+        {canInstall && (
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-3">
+            <Toggle label={he.installments.toggle} checked={instOn} onChange={setInstOn} />
+            {instOn && (
+              <>
+                <Field label={he.installments.count}>
+                  {(p) => <input {...p} inputMode="numeric" dir="ltr" className={`${inputCls} num text-start`} value={instCount} onChange={(e) => setInstCount(e.target.value.replace(/\D/g, ''))} />}
+                </Field>
+                <Segmented
+                  label={he.installments.kind}
+                  value={instKind}
+                  onChange={setInstKind}
+                  options={[
+                    { value: 'installments', label: he.installments.installments },
+                    { value: 'credit', label: he.installments.credit },
+                  ]}
+                />
+                {instKind === 'credit' && (
+                  <Field label={he.installments.interest} hint={he.installments.interestHint}>
+                    {(p) => <MoneyInput {...p} value={instInterest} onChange={setInstInterest} />}
+                  </Field>
+                )}
+                <div>
+                  <p className="mb-1.5 text-sm font-medium">{he.installments.recognition}</p>
+                  <Segmented
+                    label={he.installments.recognition}
+                    value={recognition}
+                    onChange={setInstRecognition}
+                    options={[
+                      { value: 'spread', label: he.installments.spread },
+                      { value: 'upfront', label: he.installments.upfront },
+                    ]}
+                  />
+                </div>
+                <Field label={he.installments.firstCharge}>
+                  {(p) => <input {...p} type="date" className={inputCls} value={instFirst || (card && date ? cycleForDate(date, card).chargeDate : '')} onChange={(e) => setInstFirst(e.target.value)} />}
+                </Field>
+                {installmentPreview && <p className="text-sm text-muted">{installmentPreview}</p>}
+              </>
+            )}
+          </div>
         )}
 
         <Field label={F.date} error={errors.date} hint={beforeOpening && opening ? F.beforeOpening(formatDisplayDate(opening.date)) : undefined}>
