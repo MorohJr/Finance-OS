@@ -6,7 +6,7 @@ import { he } from '../strings.he';
 // SPEC 7.1 order. When the business module is active it moves to the top (stage 8).
 const FINANCE: ModuleKey[] = ['cards', 'debts', 'checks', 'investments', 'pension', 'salary'];
 const BUSINESS: ModuleKey[] = ['business', 'tax'];
-const TOOLS: ModuleKey[] = ['reports', 'import'];
+const TOOLS: ModuleKey[] = ['reports'];
 
 function Group({ items }: { items: ModuleKey[] }) {
   return (
@@ -28,7 +28,12 @@ export function MoreScreen() {
         </ListGroup>
         <Group items={FINANCE} />
         <Group items={BUSINESS} />
-        <Group items={TOOLS} />
+        <ListGroup>
+          <ListRow to="/import" icon="import" label={he.more.import} />
+          {TOOLS.map((k) => (
+            <ListRow key={k} to={`/soon/${k}`} icon={MODULES[k].icon} label={MODULES[k].label} hint={he.common.comingInStage(MODULES[k].stage)} />
+          ))}
+        </ListGroup>
         <ListGroup>
           <ListRow to="/settings" icon="settings" label={he.more.settings} />
         </ListGroup>

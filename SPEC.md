@@ -182,7 +182,7 @@ src/
 | context ✱ | enum | `personal`, `business` |
 | attachmentIds | → Attachment[] | קבלות |
 | paymentMethod | enum | `card`, `bank`, `cash`, `bit`, `paybox`, `pepper`, `check`, `standing_order`, `other` |
-| links | object | אופציונלי: `recurringId`, `loanId`, `lendingId`, `wishItemId`, `checkId`, `installmentPlanId`, `statementId`, `payslipId`, `tradeId` |
+| links | object | אופציונלי: `recurringId`, `loanId`, `lendingId`, `wishItemId`, `checkId`, `installmentPlanId`, `statementId`, `payslipId`, `tradeId`, `pensionFundId` (הפקדה עצמאית, 6.15), `importBatchId` (ביטול ייבוא, 9.1) |
 | business | object | רק כש-`context=business`. בהוצאה: `vatAgorot`, `expenseClassId`, `supplierInvoiceNumber?`. בהכנסה: `netAgorot`, `vatAgorot`, `incomeTaxReserveAgorot`, `niReserveAgorot` (snapshot מהמחשבון, 11.2) |
 | source ✱ | enum | `manual`, `import`, `system` |
 | importHash | string | לזיהוי כפילויות |

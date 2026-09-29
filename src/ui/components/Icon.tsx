@@ -36,6 +36,8 @@ const PATHS = {
   trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3',
   tag: 'M3 12V4h8l10 10-8 8zM7.5 7.5h.01',
   folder: 'M4 6h5l2 2h9v11H4z',
+  done: 'M5 12l5 5L20 7',
+  rule: 'M4 6h10M4 12h16M4 18h7M17 4l3 3-3 3',
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router';
 import { BottomNav } from './components/BottomNav';
 import { ToastProvider } from './components/Toast';
@@ -17,6 +17,10 @@ import { BudgetScreen } from './screens/BudgetScreen';
 import { RecurringScreen } from './screens/RecurringScreen';
 import { RecurringFormScreen } from './screens/RecurringFormScreen';
 import { ForecastScreen } from './screens/ForecastScreen';
+import { RulesScreen } from './screens/RulesScreen';
+
+// SheetJS is large; load the importer only when it's opened.
+const ImportScreen = lazy(() => import('./screens/ImportScreen').then((m) => ({ default: m.ImportScreen })));
 import { PlanScreen } from './screens/PlanScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -69,6 +73,15 @@ export function App() {
             <Route path="more" element={<MoreScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="settings/categories" element={<CategoriesScreen />} />
+            <Route path="settings/rules" element={<RulesScreen />} />
+            <Route
+              path="import"
+              element={
+                <Suspense fallback={null}>
+                  <ImportScreen />
+                </Suspense>
+              }
+            />
             <Route path="soon/:module" element={<ComingSoonScreen />} />
             <Route path="*" element={<HomeScreen />} />
           </Route>

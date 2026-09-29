@@ -325,6 +325,8 @@ export function SettingsScreen() {
           <SectionTitle>{S.data}</SectionTitle>
           <Group>
             <ListRow to="/settings/categories" icon="folder" label={S.categories} />
+            <ListRow to="/settings/rules" icon="rule" label={S.rules} />
+            <ListRow to="/import" icon="import" label={S.import} />
             <ListRow to="/accounts" icon="wallet" label={he.accounts.title} />
           </Group>
         </section>

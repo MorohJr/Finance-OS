@@ -126,6 +126,8 @@ export const TransactionLinks = z.object({
   tradeId: optionalId,
   // SPEC 6.15: a self-deposit to a pension fund is a transfer linked to the fund.
   pensionFundId: optionalId,
+  // DECISION (9.1 step 5): the import batch that created it, so a whole import can be undone.
+  importBatchId: optionalId,
 });
 
 export const BusinessExpenseDetails = z.object({
