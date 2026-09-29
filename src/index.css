@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+
+/* Design direction 4, "בנק דיגיטלי" (SPEC 8). Every color is a token. */
+:root {
+  --bg: #f2f0fa;
+  --surface: #ffffff;
+  --surface-2: #f7f6fc;
+  --text: #1e1b3a;
+  --muted: #6b6890;
+  --line: #e4e0f5;
+  --brand: #5b3fd9;
+  --brand-strong: #4a31bd;
+  --brand-soft: #ede9fd;
+  --brand-text: #5b3fd9;
+  --on-brand: #ffffff;
+  --on-brand-muted: #d9d2ff;
+  --income: #16803c;
+  --expense: #c2362f;
+  --transfer: #6b6890;
+  --warning: #b45309;
+  --warning-soft: #fff4e5;
+  --danger-soft: #fdecec;
+  --scrim: rgb(20 18 42 / 0.45);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #14122a;
+    --surface: #1e1b3a;
+    --surface-2: #262245;
+    --text: #f1efff;
+    --muted: #a9a5cc;
+    --line: #2f2a55;
+    --brand-soft: #2a2358;
+    --brand-text: #a794ff;
+    --income: #4ade80;
+    --expense: #f87171;
+    --transfer: #a9a5cc;
+    --warning: #fbbf24;
+    --warning-soft: #3a2a10;
+    --danger-soft: #3b1618;
+    --scrim: rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #14122a;
+  --surface: #1e1b3a;
+  --surface-2: #262245;
+  --text: #f1efff;
+  --muted: #a9a5cc;
+  --line: #2f2a55;
+  --brand-soft: #2a2358;
+  --brand-text: #a794ff;
+  --income: #4ade80;
+  --expense: #f87171;
+  --transfer: #a9a5cc;
+  --warning: #fbbf24;
+  --warning-soft: #3a2a10;
+  --danger-soft: #3b1618;
+  --scrim: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Rubik', system-ui, -apple-system, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-text: var(--brand-text);
+  --color-on-brand: var(--on-brand);
+  --color-on-brand-muted: var(--on-brand-muted);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-transfer: var(--transfer);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-scrim: var(--scrim);
+  --radius-card: 20px;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+/* Amounts: tabular digits, isolated LTR so "₪1,234.56" never flips inside RTL text (SPEC 4, 8). */
+.num {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
