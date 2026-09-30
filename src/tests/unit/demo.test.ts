@@ -60,6 +60,9 @@ describe('demo mode', () => {
     const leumiBalance = accountBalance(leumi.id, await db.transactions.toArray());
     expect(leumiBalance).toBeGreaterThan(30_000_00);
     expect(leumiBalance).toBeLessThan(400_000_00);
+    // No account without an overdraft ends in the red (the trading account once did).
+    const allTx = await db.transactions.toArray();
+    for (const a of await db.accounts.toArray()) if (!a.overdraftLimit) expect(accountBalance(a.id, allTx), a.name).toBeGreaterThanOrEqual(0);
     // Usage-based bills are paid once a month, not repeatedly (regression).
     expect(await db.transactions.filter((t) => t.description === 'חשמל' && !t.links?.debtId).count()).toBeLessThanOrEqual(13);
 

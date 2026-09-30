@@ -43,7 +43,7 @@ test('works offline after the first visit (airplane mode)', async ({ page, conte
   await page.reload(); // let the service worker control the page
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('שווי נטו')).toBeVisible();
+  await expect(page.getByText('שווי נטו', { exact: true }).first()).toBeVisible();
   await page.getByRole('navigation', { name: 'ניווט ראשי' }).getByRole('link', { name: 'עוד' }).click();
   await expect(page.getByRole('heading', { name: 'עוד' })).toBeVisible();
   await context.setOffline(false);

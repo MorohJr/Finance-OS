@@ -16,6 +16,7 @@ import { saveFund, saveSecurity, saveSnapshot, saveTrade, selfDeposit, setFxRate
 import { saveEmployer, savePayslip } from '../salary';
 import { loadBusinessOverview, markVatPaid, moveToTaxReserve, saveBusiness, saveBusinessExpense, saveBusinessIncome, saveTaxSettings } from '../business';
 import { formatScaled, parseScaled } from '../../calc/investments';
+import { accountBalance } from '../../calc/balance';
 
 /**
  * Demo data (owner request 01/10/2026): a well-off family, one year back, touching every part of
@@ -470,7 +471,17 @@ export async function generateDemo(db: FinanceDB, today: string = todayIL(), pro
   ];
   for (const [hi, qty, mi] of buys) {
     const d = dayIn(months[mi]!, 7);
-    if (d) await trade(hi, 'buy', d, String(qty), grossOf(hi, qty, mi), holdings[hi]!.s.priceUnit === 'USD' ? ils(7.5) : Math.round(grossOf(hi, qty, mi) * 0.0008), undefined, mi);
+    if (!d) continue;
+    const gross = grossOf(hi, qty, mi);
+    const fee = holdings[hi]!.s.priceUnit === 'USD' ? ils(7.5) : Math.round(gross * 0.0008);
+    // Like a real investor: move money from savings first when the trading account is short.
+    const cashNow = accountBalance(broker.id, await db.transactions.toArray());
+    const short = gross + fee + ils(5_000) - cashNow;
+    if (short > 0) {
+      const topUp = Math.ceil(short / ils(10_000)) * ils(10_000);
+      await createTransaction(db, { kind: 'transfer', amountAgorot: topUp, date: addDays(d, -2), accountId: savings.id, toAccountId: broker.id, context: 'personal', status: 'cleared', description: 'העברה לחשבון המסחר' });
+    }
+    await trade(hi, 'buy', d, String(qty), gross, fee, undefined, mi);
   }
   const sellDay = dayIn(months[10]!, 14);
   if (sellDay) await trade(5, 'sell', sellDay, '600', grossOf(5, 600, 10), ils(18), ils(90), 10);

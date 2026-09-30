@@ -23,6 +23,13 @@ export interface NetWorth {
   liabilities: number;
   netWorth: number;
   liquidAssets: number;
+  /** Sum of all account balances, as the accounts screen shows it (negative accounts subtract). */
+  cashInAccounts: number;
+  /** Pension/provident money that cannot be withdrawn now (part of `breakdown.pension`). */
+  pensionIlliquid: number;
+  pensionLiquid: number;
+  /** Net worth without the locked pension money (what the household could reach today, net of debts). */
+  netWorthExcludingPension: number;
   breakdown: {
     positiveAccounts: number;
     negativeAccounts: number;
@@ -55,6 +62,10 @@ export function computeNetWorth(i: NetWorthInput): NetWorth {
     liabilities,
     netWorth: assets - liabilities,
     liquidAssets: assets - pensionIlliquid - lending,
+    cashInAccounts: positiveAccounts - negativeAccounts,
+    pensionIlliquid,
+    pensionLiquid: pension - pensionIlliquid,
+    netWorthExcludingPension: assets - liabilities - pensionIlliquid,
     breakdown: { positiveAccounts, negativeAccounts, securities, pension, lending, cards, loans, checks, debts },
   };
 }

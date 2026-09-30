@@ -1,6 +1,8 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Banner } from '../components/Banner';
+import { BottomSheet } from '../components/BottomSheet';
+import { formatAgorot } from '../../calc/money';
 import { Card, SectionTitle } from '../components/Card';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
@@ -48,6 +50,7 @@ export function HomeScreen() {
   const hasData = useHasData();
   const { installed, persisted } = usePlatform();
   const [installDismissed, setInstallDismissed] = useState(false);
+  const [nwOpen, setNwOpen] = useState(false);
   const accounts = useAccounts();
   const txs = useTransactions();
   const balances = useBalances(accounts, txs);
@@ -129,15 +132,35 @@ export function HomeScreen() {
             <Icon name="settings" />
           </Link>
         </div>
-        <p className="text-sm text-on-brand-muted">{H.netWorth}</p>
-        {active.length ? <Money agorot={nw.netWorth} className="mt-1 block text-4xl font-bold" /> : <p className="num mt-1 text-4xl font-bold">—</p>}
-        {!active.length && <p className="mt-1 text-sm text-on-brand-muted">{H.netWorthPending}</p>}
+        {active.length ? (
+          <button type="button" onClick={() => setNwOpen(true)} className="-mx-2 block w-[calc(100%+1rem)] rounded-2xl px-2 py-1 text-start active:bg-brand-strong">
+            <span className="flex items-center gap-1 text-sm text-on-brand-muted">
+              {H.netWorth}
+              <span className="ms-auto flex items-center gap-0.5 text-xs">
+                {H.nwDetails}
+                <Icon name="chevron" size={16} />
+              </span>
+            </span>
+            <Money agorot={nw.netWorth} className="mt-1 block text-4xl font-bold" />
+            {nw.pensionIlliquid > 0 && <span className="mt-0.5 block text-xs text-on-brand-muted">{H.nwIncludesPension(formatAgorot(nw.pensionIlliquid, { hideAgorot: true }))}</span>}
+          </button>
+        ) : (
+          <>
+            <p className="text-sm text-on-brand-muted">{H.netWorth}</p>
+            <p className="num mt-1 text-4xl font-bold">—</p>
+            <p className="mt-1 text-sm text-on-brand-muted">{H.netWorthPending}</p>
+          </>
+        )}
         {active.length > 0 && lastSnapshot && lastSnapshot.month < currentMonthIL() && (
           <p className="mt-1 text-sm text-on-brand-muted">
             <Money agorot={nwChange} signed className="text-on-brand" /> {H.changeFromLastMonth('').trim()}
           </p>
         )}
       </header>
+
+      <BottomSheet open={nwOpen} title={H.nw.title} onClose={() => setNwOpen(false)}>
+        <NetWorthBreakdown nw={nw} />
+      </BottomSheet>
 
       <div className="flex flex-col gap-4 px-4 pt-4">
         {!installed && !installDismissed && (
@@ -167,7 +190,7 @@ export function HomeScreen() {
 
         <div className="grid grid-cols-2 gap-3">
           <Metric label={H.liquid} to="/accounts">
-            {active.length ? <Money agorot={nw.liquidAssets} /> : undefined}
+            {active.length ? <Money agorot={nw.cashInAccounts} /> : undefined}
           </Metric>
           <Metric label={H.budget} to="/plan/budget">
             {budget && budget.totalBudget > 0 ? (
@@ -425,5 +448,67 @@ export function HomeScreen() {
         )}
       </div>
     </>
+  );
+}
+
+function NwRow({ label, agorot, negative = false }: { label: string; agorot: number; negative?: boolean }) {
+  if (!agorot) return null;
+  return (
+    <li className="flex items-baseline justify-between gap-3 py-2">
+      <span className="text-sm">{label}</span>
+      <Money agorot={negative ? -agorot : agorot} className="shrink-0 font-medium" />
+    </li>
+  );
+}
+
+function NetWorthBreakdown({ nw }: { nw: ReturnType<typeof computeNetWorth> }) {
+  const N = H.nw;
+  const b = nw.breakdown;
+  return (
+    <div className="flex flex-col gap-4 pb-4">
+      <p className="text-sm text-muted">{N.explain}</p>
+      <section>
+        <h3 className="flex justify-between font-bold">
+          <span>{N.assets}</span>
+          <Money agorot={nw.assets} />
+        </h3>
+        <ul className="divide-y divide-line">
+          <NwRow label={N.accounts} agorot={b.positiveAccounts} />
+          <NwRow label={N.securities} agorot={b.securities} />
+          <NwRow label={N.pensionLiquid} agorot={nw.pensionLiquid} />
+          <NwRow label={N.pensionLocked} agorot={nw.pensionIlliquid} />
+          <NwRow label={N.lending} agorot={b.lending} />
+        </ul>
+      </section>
+      <section>
+        <h3 className="flex justify-between font-bold">
+          <span>{N.liabilities}</span>
+          <Money agorot={-nw.liabilities} />
+        </h3>
+        <ul className="divide-y divide-line">
+          <NwRow label={N.negativeAccounts} agorot={b.negativeAccounts} negative />
+          <NwRow label={N.cards} agorot={b.cards} negative />
+          <NwRow label={N.loans} agorot={b.loans} negative />
+          <NwRow label={N.checks} agorot={b.checks} negative />
+          <NwRow label={N.debts} agorot={b.debts} negative />
+        </ul>
+      </section>
+      <div className="rounded-card bg-surface-2 p-4">
+        <p className="flex justify-between text-lg font-bold">
+          <span>{N.total}</span>
+          <Money agorot={nw.netWorth} />
+        </p>
+        {nw.pensionIlliquid > 0 && (
+          <p className="mt-1 flex justify-between text-sm text-muted">
+            <span>{N.withoutPension}</span>
+            <Money agorot={nw.netWorthExcludingPension} />
+          </p>
+        )}
+        <p className="mt-1 flex justify-between text-sm text-muted">
+          <span>{N.liquid}</span>
+          <Money agorot={nw.liquidAssets} />
+        </p>
+      </div>
+    </div>
   );
 }

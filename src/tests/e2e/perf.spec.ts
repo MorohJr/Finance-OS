@@ -60,7 +60,7 @@ test('10,000 transactions: dashboard, list, search and budget stay fast', async 
   const home = await time('dashboard', async () => {
     await page.goto('/');
     await expect(page.getByText('תנועות אחרונות')).toBeVisible();
-    await expect(page.getByRole('link', { name: /יתרה נזילה/ })).toContainText('₪');
+    await expect(page.getByRole('link', { name: /כסף בחשבונות/ })).toContainText('₪');
   });
   const list = await time('transactions list', async () => {
     await page.goto('/transactions');
