@@ -7,7 +7,7 @@ import { he } from '../strings.he';
 
 export function ComingSoonScreen() {
   const { module } = useParams();
-  const m = MODULES[module as ModuleKey] ?? MODULES.cards;
+  const m = MODULES[module as ModuleKey] ?? MODULES.investments;
   return (
     <>
       <ScreenHeader title={m.label} back />

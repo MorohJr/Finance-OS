@@ -6,7 +6,8 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes } from '../data';
+import { monthlyDebt } from '../../calc/loans';
 import { ForecastEvents } from '../components/ForecastEvents';
 import { ProgressBar } from '../components/ProgressBar';
 import { upcomingReminders } from '../../calc/recurring';
@@ -64,10 +65,24 @@ export function HomeScreen() {
       future: sumAgorot(list.map((c) => c.status.futureInstallmentsTotal)),
     };
   }, [cardsData]);
+  const loans = useLoans();
+  const lendings = useLendings();
+  const checks = useChecks();
+  const flowOptions = useFlowOptions();
+  const wishes = useWishes();
   const nw = useMemo(
-    () => computeNetWorth({ accountBalances: active.map((a) => balances.get(a.id) ?? 0), cardOpenStatements: cardTotals.open, cardFutureInstallments: cardTotals.future }),
-    [active, balances, cardTotals],
+    () =>
+      computeNetWorth({
+        accountBalances: active.map((a) => balances.get(a.id) ?? 0),
+        cardOpenStatements: cardTotals.open,
+        cardFutureInstallments: cardTotals.future,
+        loansRemainingPrincipal: sumAgorot((loans ?? []).map((l) => Math.max(0, l.status.remainingPrincipal))),
+        lendingRemaining: sumAgorot((lendings ?? []).map((l) => l.status.remaining)),
+        checksIssuedPending: sumAgorot((checks ?? []).filter((c) => c.direction === 'issued' && (c.status === 'pending' || c.status === 'deposited')).map((c) => c.amountAgorot)),
+      }),
+    [active, balances, cardTotals, loans, lendings, checks],
   );
+  const debtThisMonth = useMemo(() => (loans && spread ? monthlyDebt(loans.map((l) => l.status), spread.charges, currentMonthIL()) : 0), [loans, spread]);
   const today = todayIL();
   const budget = useBudget(currentMonthIL());
   const pending = usePending();
@@ -76,7 +91,7 @@ export function HomeScreen() {
   const forecast30 = useForecast(primaryBank?.id, today, 30);
   const reminders = useMemo(() => upcomingReminders(recurring ?? [], today, 30), [recurring, today]);
   const recurringById = byId(recurring);
-  const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), spread }), [txs, spread]);
+  const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), ...flowOptions }), [txs, flowOptions]);
   const recent = useMemo(() => sortTransactions(txs ?? []).slice(0, 5), [txs]);
 
   const backupDue = settings && hasData !== undefined && isBackupDue(settings.lastBackupAt, hasData);
@@ -143,7 +158,14 @@ export function HomeScreen() {
           <Metric label={H.cashflow} to={`/transactions?from=${monthRange(currentMonthIL()).from}&to=${monthRange(currentMonthIL()).to}`}>
             {txs?.length ? <Money agorot={month.net} tone={month.net >= 0 ? 'income' : 'expense'} /> : undefined}
           </Metric>
-          <Metric label={H.debts} to="/soon/debts" />
+          <Metric label={H.debts} to="/debts">
+            {debtThisMonth > 0 || (loans ?? []).length ? (
+              <>
+                <Money agorot={debtThisMonth} />
+                <p className="text-xs font-normal text-muted">{H.debtsHint}</p>
+              </>
+            ) : undefined}
+          </Metric>
         </div>
 
         {active.length === 0 ? (
@@ -231,6 +253,36 @@ export function HomeScreen() {
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {(wishes ?? []).some((w) => w.item.status === 'active') && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.wishes}</SectionTitle>
+              <Link to="/plan/wish" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="flex flex-col gap-3">
+              {(wishes ?? [])
+                .filter((w) => w.item.status === 'active')
+                .slice(0, 3)
+                .map((w) => (
+                  <Link key={w.item.id} to={`/plan/wish/${w.item.id}`} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{w.item.name}</span>
+                      <span className="flex gap-1">
+                        <Money agorot={w.status.savedOrPaid} />
+                        <span className="text-muted">
+                          / <Money agorot={w.item.priceAgorot} />
+                        </span>
+                      </span>
+                    </div>
+                    <ProgressBar usedBp={w.status.progressBp} state={w.status.label === 'behind' ? 'near' : 'ok'} label={w.item.name} />
+                  </Link>
+                ))}
+            </Card>
           </section>
         )}
 

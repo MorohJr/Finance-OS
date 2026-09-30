@@ -2,7 +2,6 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { ListGroup, ListRow } from '../components/ListRow';
 import { Money } from '../components/Money';
 import { ProgressBar } from '../components/ProgressBar';
-import { MODULES } from '../modules';
 import { useBudget } from '../data';
 import { budgetState } from '../../calc/budget';
 import { currentMonthIL } from '../../calc/dates';
@@ -31,7 +30,7 @@ export function PlanScreen() {
           <ListRow to="/plan/budget" icon="target" label={he.plan.budget} />
           <ListRow to="/plan/recurring" icon="repeat" label={he.plan.recurring} />
           <ListRow to="/plan/forecast" icon="trend" label={he.plan.forecast} />
-          <ListRow to="/soon/wishList" icon={MODULES.wishList.icon} label={MODULES.wishList.label} hint={he.common.comingInStage(MODULES.wishList.stage)} />
+          <ListRow to="/plan/wish" icon="gift" label={he.plan.wishList} />
         </ListGroup>
       </div>
     </>

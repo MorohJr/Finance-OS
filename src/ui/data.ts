@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Card, Category, InstallmentPlan, Institution, Payee, Recurring, Transaction } from '../domain/schemas';
+import type { Account, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, Payee, Recurring, Transaction, WishItem } from '../domain/schemas';
+import { wishStatus, type WishStatus } from '../calc/wish';
+import { lendingStatus, loanInterestByTx, loanStatus, type LendingStatus, type LoanStatus } from '../calc/loans';
+import { todayIL } from '../calc/dates';
 import { SETTINGS_ID } from '../domain/schemas';
 import { computeBudget, type BudgetSummary } from '../calc/budget';
 import { computeForecast, type Forecast } from '../calc/forecast';
-import { cardStatus, spreadInstallments, type CardStatus } from '../calc/cards';
-import type { SpreadInstallments } from '../calc/cashflow';
+import { cardStatus, installmentSchedule, spreadInstallments, type CardStatus } from '../calc/cards';
+import type { FlowOptions, SpreadInstallments } from '../calc/cashflow';
 import { loadCardData, type CardData } from '../services/cards';
 import { accountBalance, balancesByAccount } from '../calc/balance';
 import { USER_DATA_TABLES } from '../db/db';
@@ -122,7 +125,16 @@ export function useForecast(accountId: string | undefined, today: string, days: 
       const d = await loadCardData(db, card);
       statements.push(...d.statements.filter((s) => !d.paidChargeDates.has(s.chargeDate)).map((s) => ({ ...s, cardName: card.name })));
     }
+    // Scheduled loan payments not yet recorded (10.9: "− loan payments until day").
+    const loans = await db.loans.filter((l) => !l.deletedAt && l.accountId === accountId).toArray();
+    const loanPayments = await db.transactions.where('kind').equals('loan_payment').toArray();
+    const extraEvents = loans.flatMap((loan) => {
+      const st = loanStatus(loan, loanPayments, today);
+      if (st.status === 'paid_off') return [];
+      return st.schedule.slice(st.splits.length).map((r) => ({ date: r.date < today ? today : r.date, amountAgorot: -r.payment, kind: 'loan' as const, label: loan.name, refId: loan.id }));
+    });
     return computeForecast({
+      extraEvents,
       accountId,
       today,
       days,
@@ -134,4 +146,60 @@ export function useForecast(accountId: string | undefined, today: string, days: 
       statements,
     });
   }, [accountId, today, days]);
+}
+
+export function useLoans(): { loan: Loan; status: LoanStatus }[] | undefined {
+  return useLiveQuery(async () => {
+    const loans = await db.loans.filter((l) => !l.deletedAt).toArray();
+    const payments = await db.transactions.where('kind').equals('loan_payment').toArray();
+    const today = todayIL();
+    return loans.map((loan) => ({ loan, status: loanStatus(loan, payments, today) }));
+  }, []);
+}
+
+export function useLendings(): { lending: Lending; status: LendingStatus }[] | undefined {
+  return useLiveQuery(async () => {
+    const lendings = await db.lendings.filter((l) => !l.deletedAt).toArray();
+    const repayments = await db.transactions.where('kind').equals('lending_repayment').toArray();
+    return lendings.map((lending) => ({ lending, status: lendingStatus(lending, repayments) }));
+  }, []);
+}
+
+export function useChecks(): Check[] | undefined {
+  return useLiveQuery(() => db.checks.filter((c) => !c.deletedAt).toArray(), []);
+}
+
+/** Everything cash flow needs beyond the transactions: spread installments and loan/lending interest (10.6, 10.7, 10.12). */
+export function useFlowOptions(): Pick<FlowOptions, 'spread' | 'interestPart'> | undefined {
+  const spread = useSpread();
+  const loans = useLoans();
+  const lendings = useLendings();
+  return useMemo(() => {
+    if (!spread || !loans || !lendings) return undefined;
+    const interest = loanInterestByTx(loans.map((l) => l.status));
+    for (const l of lendings) for (const [k, v] of l.status.interestByTx) interest.set(k, v);
+    return { spread, interestPart: (t: { id: string }) => interest.get(t.id) ?? 0 };
+  }, [spread, loans, lendings]);
+}
+
+export function useWishes(): { item: WishItem; status: WishStatus }[] | undefined {
+  return useLiveQuery(async () => {
+    const items = await db.wishItems.filter((w) => !w.deletedAt).toArray();
+    const txs = await db.transactions.filter((t) => !!t.links?.wishItemId).toArray();
+    const plans = await db.installmentPlans.filter((p) => !p.deletedAt).toArray();
+    const cards = new Map((await db.cards.toArray()).map((c) => [c.id, c]));
+    const chargesByTx = new Map(plans.filter((p) => cards.has(p.cardId)).map((p) => [p.transactionId, installmentSchedule(p, cards.get(p.cardId)!)]));
+    const today = todayIL();
+    return items.map((item) => ({ item, status: wishStatus(item, txs, plans, chargesByTx, today) }));
+  }, []);
+}
+
+/** Object URL for a stored image; revoked when the component unmounts or the id changes. */
+export function useAttachmentUrl(id: string | undefined): string | undefined {
+  const blob = useLiveQuery(async () => (id ? (await db.attachments.get(id))?.blob : undefined), [id]);
+  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : undefined), [blob]);
+  useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+  return url;
 }

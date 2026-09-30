@@ -14,7 +14,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       // Iron rule 7: no data leaves the device.
       'no-restricted-globals': ['error', { name: 'fetch', message: 'אין fetch: שום נתון לא יוצא מהמכשיר (CLAUDE.md כלל 7).' }],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
   },
 );

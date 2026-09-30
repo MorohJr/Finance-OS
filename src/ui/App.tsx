@@ -18,6 +18,12 @@ import { RecurringScreen } from './screens/RecurringScreen';
 import { RecurringFormScreen } from './screens/RecurringFormScreen';
 import { ForecastScreen } from './screens/ForecastScreen';
 import { RulesScreen } from './screens/RulesScreen';
+import { DebtsScreen } from './screens/DebtsScreen';
+import { LoanFormScreen } from './screens/LoanFormScreen';
+import { LoanDetailScreen } from './screens/LoanDetailScreen';
+import { LendingDetailScreen, LendingFormScreen } from './screens/LendingScreens';
+import { CheckFormScreen, ChecksScreen } from './screens/ChecksScreen';
+import { WishDetailScreen, WishListScreen } from './screens/WishScreens';
 
 // SheetJS is large; load the importer only when it's opened.
 const ImportScreen = lazy(() => import('./screens/ImportScreen').then((m) => ({ default: m.ImportScreen })));
@@ -70,6 +76,18 @@ export function App() {
             <Route path="plan/recurring/new" element={<Fresh>{(k) => <RecurringFormScreen key={k} />}</Fresh>} />
             <Route path="plan/recurring/:id" element={<Fresh>{(k) => <RecurringFormScreen key={k} />}</Fresh>} />
             <Route path="plan/forecast" element={<ForecastScreen />} />
+            <Route path="plan/wish" element={<WishListScreen />} />
+            <Route path="plan/wish/:id" element={<Fresh>{(k) => <WishDetailScreen key={k} />}</Fresh>} />
+            <Route path="debts" element={<DebtsScreen />} />
+            <Route path="debts/loans/new" element={<Fresh>{(k) => <LoanFormScreen key={k} />}</Fresh>} />
+            <Route path="debts/loans/:id" element={<LoanDetailScreen />} />
+            <Route path="debts/loans/:id/edit" element={<Fresh>{(k) => <LoanFormScreen key={k} />}</Fresh>} />
+            <Route path="debts/lendings/new" element={<Fresh>{(k) => <LendingFormScreen key={k} />}</Fresh>} />
+            <Route path="debts/lendings/:id" element={<LendingDetailScreen />} />
+            <Route path="debts/lendings/:id/edit" element={<Fresh>{(k) => <LendingFormScreen key={k} />}</Fresh>} />
+            <Route path="checks" element={<ChecksScreen />} />
+            <Route path="checks/new" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />
+            <Route path="checks/:id" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />
             <Route path="more" element={<MoreScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="settings/categories" element={<CategoriesScreen />} />

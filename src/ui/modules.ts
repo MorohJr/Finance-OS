@@ -3,13 +3,9 @@ import { he } from './strings.he';
 
 /** Modules not built yet, with the SPEC 13 stage they belong to. */
 export const MODULES = {
-  cards: { label: 'כרטיסי אשראי', icon: 'card', stage: 2 },
   budget: { label: he.plan.budget, icon: 'target', stage: 3 },
   recurring: { label: he.plan.recurring, icon: 'repeat', stage: 3 },
   forecast: { label: he.plan.forecast, icon: 'trend', stage: 3 },
-  wishList: { label: he.plan.wishList, icon: 'gift', stage: 5 },
-  debts: { label: he.more.debts, icon: 'loan', stage: 5 },
-  checks: { label: he.more.checks, icon: 'check', stage: 5 },
   investments: { label: he.more.investments, icon: 'chart', stage: 6 },
   pension: { label: he.more.pension, icon: 'pension', stage: 6 },
   salary: { label: he.more.salary, icon: 'salary', stage: 7 },
