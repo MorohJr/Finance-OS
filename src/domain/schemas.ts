@@ -493,6 +493,8 @@ export const PensionSnapshot = z.object({
   depositsSeveranceAgorot: NonNegativeAgorot.optional(),
   depositsSelfAgorot: NonNegativeAgorot.optional(),
   returnPct: z.int().optional(),
+  // DECISION (6.16): set when the snapshot was created from a payslip, so editing the payslip updates it.
+  payslipId: optionalId,
 });
 
 // ---------------------------------------------------------------------------
@@ -507,6 +509,8 @@ export const Employer = z.object({
   endDate: IsoDate.optional(),
   payDay: z.int().min(1).max(31).default(9),
   depositAccountId: optionalId,
+  // DECISION (6.16): the fund that receives the payslip's pension deposits.
+  pensionFundId: optionalId,
 });
 
 export const PayslipComponent = z.object({

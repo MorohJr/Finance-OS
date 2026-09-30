@@ -407,7 +407,7 @@ src/
 
 ### 6.16 Employer ו-Payslip (שכיר)
 
-**Employer:** `name`, `employerVatId?`, `startDate`, `endDate?`, `payDay` (ברירת מחדל 9), `depositAccountId`.
+**Employer:** `name`, `employerVatId?`, `startDate`, `endDate?`, `payDay` (ברירת מחדל 9), `depositAccountId`, `pensionFundId?` (הקרן שמקבלת את הפקדות התלוש).
 
 **Payslip (תלוש)**
 
@@ -427,7 +427,7 @@ src/
 | components | array | אופציונלי: משכורת 13, הבראה, בונוס, שעות נוספות |
 | attachmentId | | צילום תלוש |
 
-**התנהגות:** כל ערכי התלוש מוזנים ידנית מהתלוש עצמו. האפליקציה לא מחשבת מס או ביטוח לאומי לשכיר. שמירת תלוש יוצרת `income` בנטו לחשבון ההפקדה בתאריך התשלום, ו-PensionSnapshot דלתא לקרן המקושרת.
+**התנהגות:** כל ערכי התלוש מוזנים ידנית מהתלוש עצמו. האפליקציה לא מחשבת מס או ביטוח לאומי לשכיר. שמירת תלוש יוצרת `income` בנטו לחשבון ההפקדה בתאריך התשלום (`payDay` בחודש שאחרי חודש התלוש; `pending` עד שהתאריך מגיע), ו-PensionSnapshot דלתא לקרן המקושרת (`Employer.pensionFundId`, עם `payslipId` על הצילום).
 
 ### 6.17 מודול עסק (עצמאי, חישוב בלבד)
 

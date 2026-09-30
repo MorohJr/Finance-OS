@@ -3,7 +3,6 @@ import { he } from './strings.he';
 
 /** Modules not built yet, with the SPEC 13 stage they belong to. */
 export const MODULES = {
-  salary: { label: he.more.salary, icon: 'salary', stage: 7 },
   business: { label: he.more.business, icon: 'business', stage: 8 },
   tax: { label: he.more.tax, icon: 'percent', stage: 8 },
   reports: { label: he.more.reports, icon: 'report', stage: 9 },

@@ -6,10 +6,11 @@ import { portfolio, type Portfolio } from '../calc/investments';
 import { fundViews, type FundView } from '../calc/pension';
 import { wishStatus, type WishStatus } from '../calc/wish';
 import { lendingStatus, loanInterestByTx, loanStatus, type LendingStatus, type LoanStatus } from '../calc/loans';
-import { todayIL } from '../calc/dates';
+import { addDays, todayIL } from '../calc/dates';
+import { expectedSalaryEvents } from '../calc/salary';
 import { SETTINGS_ID } from '../domain/schemas';
 import { computeBudget, type BudgetSummary } from '../calc/budget';
-import { computeForecast, type Forecast } from '../calc/forecast';
+import { computeForecast, type Forecast, type ForecastEvent } from '../calc/forecast';
 import { cardStatus, installmentSchedule, spreadInstallments, type CardStatus } from '../calc/cards';
 import type { FlowOptions, SpreadInstallments } from '../calc/cashflow';
 import { loadCardData, type CardData } from '../services/cards';
@@ -130,11 +131,13 @@ export function useForecast(accountId: string | undefined, today: string, days: 
     // Scheduled loan payments not yet recorded (10.9: "− loan payments until day").
     const loans = await db.loans.filter((l) => !l.deletedAt && l.accountId === accountId).toArray();
     const loanPayments = await db.transactions.where('kind').equals('loan_payment').toArray();
-    const extraEvents = loans.flatMap((loan) => {
+    const extraEvents: ForecastEvent[] = loans.flatMap((loan): ForecastEvent[] => {
       const st = loanStatus(loan, loanPayments, today);
       if (st.status === 'paid_off') return [];
       return st.schedule.slice(st.splits.length).map((r) => ({ date: r.date < today ? today : r.date, amountAgorot: -r.payment, kind: 'loan' as const, label: loan.name, refId: loan.id }));
     });
+    const [employers, payslips] = await Promise.all([db.employers.toArray(), db.payslips.toArray()]);
+    extraEvents.push(...expectedSalaryEvents(employers, payslips, accountId, today, addDays(today, days)));
     return computeForecast({
       extraEvents,
       accountId,
