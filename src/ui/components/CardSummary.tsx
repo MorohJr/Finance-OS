@@ -13,7 +13,7 @@ export function CardSummary({ card, status, issuer }: { card: Card; status?: Car
   return (
     <Link to={`/cards/${card.id}`} className="flex flex-col gap-2 px-4 py-3 active:bg-surface-2">
       <div className="flex items-center gap-3">
-        <Monogram name={issuer?.name ?? card.name} color={issuer?.color} size={32} />
+        <Monogram name={issuer?.name ?? card.name} color={issuer?.color} size={32} logoId={issuer?.logoAttachmentId} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{card.name}</span>
           <span className="num block text-xs text-muted">·· {card.last4}</span>

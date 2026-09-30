@@ -14,7 +14,7 @@
   --brand-text: #5b3fd9;
   --on-brand: #ffffff;
   --on-brand-muted: #d9d2ff;
-  --income: #16803c;
+  --income: #137336;
   --expense: #c2362f;
   --transfer: #6b6890;
   --warning: #b45309;
@@ -123,5 +123,14 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* iOS Safari zooms into any focused field under 16px; never let that happen. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
   }
 }

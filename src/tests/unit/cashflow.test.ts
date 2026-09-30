@@ -40,6 +40,12 @@ describe('summarizeFlows', () => {
     expect(s.income).toBe(500_000);
   });
 
+  it('VAT payments are not expenses (income is counted without VAT)', async () => {
+    const { SYSTEM_CATEGORY_IDS } = await import('../../db/seed.data');
+    const s = summarizeFlows([tx({ kind: 'expense', amountAgorot: 174_000, accountId: 'a', context: 'business', categoryId: SYSTEM_CATEGORY_IDS.vatPayment })], range);
+    expect(s.expense).toBe(0);
+  });
+
   it('context filter and date range', () => {
     const txs = [
       tx({ kind: 'expense', amountAgorot: 100, accountId: 'a', context: 'business' }),

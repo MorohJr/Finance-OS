@@ -10,6 +10,7 @@ import { activeTransactions } from '../../services/transactions';
 import { currentMonthIL } from '../../calc/dates';
 import { monthRange } from '../../calc/cashflow';
 import { he } from '../strings.he';
+import { markUnlocked } from '../components/PinLock';
 
 export function PinSettings() {
   const settings = useSettings();
@@ -22,6 +23,7 @@ export function PinSettings() {
   async function save() {
     if (!isValidPin(a)) return setError(he.pin.invalid);
     if (a !== b) return setError(he.pin.mismatch);
+    markUnlocked();
     await setPin(db, a);
     setEditing(false);
     setA('');

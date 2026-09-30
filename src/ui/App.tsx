@@ -1,43 +1,58 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ComponentType, type ReactNode } from 'react';
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router';
 import { BottomNav } from './components/BottomNav';
 import { ToastProvider } from './components/Toast';
 import { PinLock } from './components/PinLock';
+import { UpdateBanner } from './components/UpdateBanner';
 import { QuickAddSheet } from './screens/QuickAddSheet';
 import { HomeScreen } from './screens/HomeScreen';
 import { TransactionsScreen } from './screens/TransactionsScreen';
 import { TransactionFormScreen } from './screens/TransactionFormScreen';
-import { AccountsScreen } from './screens/AccountsScreen';
-import { AccountDetailScreen } from './screens/AccountDetailScreen';
-import { AccountFormScreen } from './screens/AccountFormScreen';
-import { CategoriesScreen } from './screens/CategoriesScreen';
-import { CardFormScreen } from './screens/CardFormScreen';
-import { CardDetailScreen } from './screens/CardDetailScreen';
-import { BudgetScreen } from './screens/BudgetScreen';
-import { RecurringScreen } from './screens/RecurringScreen';
-import { RecurringFormScreen } from './screens/RecurringFormScreen';
-import { ForecastScreen } from './screens/ForecastScreen';
-import { RulesScreen } from './screens/RulesScreen';
-import { DebtsScreen } from './screens/DebtsScreen';
-import { LoanFormScreen } from './screens/LoanFormScreen';
-import { LoanDetailScreen } from './screens/LoanDetailScreen';
-import { LendingDetailScreen, LendingFormScreen } from './screens/LendingScreens';
-import { CheckFormScreen, ChecksScreen } from './screens/ChecksScreen';
-import { WishDetailScreen, WishListScreen } from './screens/WishScreens';
-import { InvestmentsScreen } from './screens/InvestmentsScreen';
-import { PricesScreen, SecurityScreen, TradeFormScreen } from './screens/SecurityScreens';
-import { FundScreen, PensionScreen } from './screens/PensionScreens';
-import { EmployerFormScreen, PayslipFormScreen, SalaryScreen } from './screens/SalaryScreens';
-import { BusinessExpenseScreen, BusinessScreen, BusinessSetupScreen, IncomeCalculatorScreen } from './screens/BusinessScreens';
-import { TaxSettingsScreen } from './screens/TaxSettingsScreen';
 
-// SheetJS is large; load the importer only when it's opened.
-const ImportScreen = lazy(() => import('./screens/ImportScreen').then((m) => ({ default: m.ImportScreen })));
 import { PlanScreen } from './screens/PlanScreen';
 import { MoreScreen } from './screens/MoreScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { ComingSoonScreen } from './screens/ComingSoonScreen';
 import { useApplyTheme, useSettings, useStartupJobs } from './hooks';
+// Everything beyond the core screens is loaded on first use (SPEC 13 stage 9: performance).
+const named = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => load().then((m) => ({ default: m[name] })));
+const AccountsScreen = named(() => import('./screens/AccountsScreen'), 'AccountsScreen');
+const AccountDetailScreen = named(() => import('./screens/AccountDetailScreen'), 'AccountDetailScreen');
+const AccountFormScreen = named(() => import('./screens/AccountFormScreen'), 'AccountFormScreen');
+const CategoriesScreen = named(() => import('./screens/CategoriesScreen'), 'CategoriesScreen');
+const CardFormScreen = named(() => import('./screens/CardFormScreen'), 'CardFormScreen');
+const CardDetailScreen = named(() => import('./screens/CardDetailScreen'), 'CardDetailScreen');
+const BudgetScreen = named(() => import('./screens/BudgetScreen'), 'BudgetScreen');
+const RecurringScreen = named(() => import('./screens/RecurringScreen'), 'RecurringScreen');
+const RecurringFormScreen = named(() => import('./screens/RecurringFormScreen'), 'RecurringFormScreen');
+const ForecastScreen = named(() => import('./screens/ForecastScreen'), 'ForecastScreen');
+const RulesScreen = named(() => import('./screens/RulesScreen'), 'RulesScreen');
+const DebtsScreen = named(() => import('./screens/DebtsScreen'), 'DebtsScreen');
+const LoanFormScreen = named(() => import('./screens/LoanFormScreen'), 'LoanFormScreen');
+const LoanDetailScreen = named(() => import('./screens/LoanDetailScreen'), 'LoanDetailScreen');
+const LendingDetailScreen = named(() => import('./screens/LendingScreens'), 'LendingDetailScreen');
+const LendingFormScreen = named(() => import('./screens/LendingScreens'), 'LendingFormScreen');
+const CheckFormScreen = named(() => import('./screens/ChecksScreen'), 'CheckFormScreen');
+const ChecksScreen = named(() => import('./screens/ChecksScreen'), 'ChecksScreen');
+const WishDetailScreen = named(() => import('./screens/WishScreens'), 'WishDetailScreen');
+const WishListScreen = named(() => import('./screens/WishScreens'), 'WishListScreen');
+const InvestmentsScreen = named(() => import('./screens/InvestmentsScreen'), 'InvestmentsScreen');
+const PricesScreen = named(() => import('./screens/SecurityScreens'), 'PricesScreen');
+const SecurityScreen = named(() => import('./screens/SecurityScreens'), 'SecurityScreen');
+const TradeFormScreen = named(() => import('./screens/SecurityScreens'), 'TradeFormScreen');
+const FundScreen = named(() => import('./screens/PensionScreens'), 'FundScreen');
+const PensionScreen = named(() => import('./screens/PensionScreens'), 'PensionScreen');
+const EmployerFormScreen = named(() => import('./screens/SalaryScreens'), 'EmployerFormScreen');
+const PayslipFormScreen = named(() => import('./screens/SalaryScreens'), 'PayslipFormScreen');
+const SalaryScreen = named(() => import('./screens/SalaryScreens'), 'SalaryScreen');
+const BusinessExpenseScreen = named(() => import('./screens/BusinessScreens'), 'BusinessExpenseScreen');
+const BusinessScreen = named(() => import('./screens/BusinessScreens'), 'BusinessScreen');
+const BusinessSetupScreen = named(() => import('./screens/BusinessScreens'), 'BusinessSetupScreen');
+const IncomeCalculatorScreen = named(() => import('./screens/BusinessScreens'), 'IncomeCalculatorScreen');
+const TaxSettingsScreen = named(() => import('./screens/TaxSettingsScreen'), 'TaxSettingsScreen');
+const SettingsScreen = named(() => import('./screens/SettingsScreen'), 'SettingsScreen');
+const ImportScreen = named(() => import('./screens/ImportScreen'), 'ImportScreen');
+const ReportsScreen = named(() => import('./screens/ReportsScreen'), 'ReportsScreen');
+const InstitutionsScreen = named(() => import('./screens/InstitutionsScreen'), 'InstitutionsScreen');
+
 
 /** Forms keep local state, so each navigation gets a fresh instance (e.g. ➕ from inside a form). */
 function Fresh({ children }: { children: (key: string) => ReactNode }) {
@@ -49,7 +64,9 @@ function Layout() {
   const [addOpen, setAddOpen] = useState(false);
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(5rem+env(safe-area-inset-bottom))]">
-      <Outlet />
+      <Suspense fallback={<div className="min-h-dvh" />}>
+        <Outlet />
+      </Suspense>
       <BottomNav onAdd={() => setAddOpen(true)} />
       <QuickAddSheet open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
@@ -112,19 +129,14 @@ export function App() {
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="settings/categories" element={<CategoriesScreen />} />
             <Route path="settings/rules" element={<RulesScreen />} />
-            <Route
-              path="import"
-              element={
-                <Suspense fallback={null}>
-                  <ImportScreen />
-                </Suspense>
-              }
-            />
-            <Route path="soon/:module" element={<ComingSoonScreen />} />
+            <Route path="settings/institutions" element={<InstitutionsScreen />} />
+            <Route path="import" element={<ImportScreen />} />
+            <Route path="reports" element={<ReportsScreen />} />
             <Route path="*" element={<HomeScreen />} />
           </Route>
         </Routes>
         <PinLock />
+        <UpdateBanner />
       </ToastProvider>
     </BrowserRouter>
   );

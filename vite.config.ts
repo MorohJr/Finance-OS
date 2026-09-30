@@ -13,9 +13,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg'],
+      // The user decides when to update (a banner), so a reload never discards a half-filled form.
+      registerType: 'prompt',
+      injectRegister: false,
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg', 'robots.txt'],
       manifest: {
         name: 'Finance OS',
         short_name: 'Finance OS',

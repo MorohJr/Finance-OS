@@ -1,5 +1,6 @@
 import type { Transaction } from '../domain/schemas';
 import { BP_SCALE, divRoundHalfUp, sumAgorot } from './money';
+import { SYSTEM_CATEGORY_IDS } from '../db/seed.data';
 
 /**
  * Income, expenses and cash flow for a date range (SPEC 10.12, principles 3–5).
@@ -84,6 +85,9 @@ export function summarizeFlows(txs: readonly FlowTx[], options: FlowOptions): Fl
   for (const t of txs) {
     if (t.deletedAt || t.status !== 'cleared') continue;
     if (spreadIds.has(t.id)) continue;
+    // DECISION (10.12, 11.2): business income counts without VAT, so paying (or getting back) VAT
+    // is a pass-through liability, not an expense.
+    if (t.categoryId === SYSTEM_CATEGORY_IDS.vatPayment) continue;
     if (t.date < options.from || t.date > options.to) continue;
     if (ctx !== 'all' && t.context !== ctx) continue;
 

@@ -10,10 +10,19 @@ export async function compressImage(file: Blob, maxSide = MAX_IMAGE_SIDE, qualit
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const w = Math.round(bitmap.width * scale);
   const h = Math.round(bitmap.height * scale);
-  const canvas = new OffscreenCanvas(w, h);
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(w, h);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    return canvas.convertToBlob({ type: 'image/jpeg', quality });
+  }
+  // Older iOS: a regular canvas.
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
   canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
-  return canvas.convertToBlob({ type: 'image/jpeg', quality });
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode_failed'))), 'image/jpeg', quality));
 }
 
 export async function saveAttachment(db: FinanceDB, file: Blob): Promise<string> {

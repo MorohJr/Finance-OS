@@ -58,6 +58,9 @@ describe('formatBp', () => {
     expect(formatBp(6667)).toBe('66.67%');
     expect(formatBp(445)).toBe('4.45%');
     expect(formatBp(450)).toBe('4.5%');
+    expect(formatBp(-50)).toBe('−0.5%');
+    expect(formatBp(-1250)).toBe('−12.5%');
+    expect(formatBp(0)).toBe('0%');
   });
 });
 

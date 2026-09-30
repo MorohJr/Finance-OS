@@ -20,6 +20,8 @@ import { formatDisplayDate, todayIL } from '../../calc/dates';
 import { agorotToInput } from '../format';
 import { he } from '../strings.he';
 import { useGoBack, useSettings } from '../hooks';
+import { Receipts } from '../components/Receipts';
+import { saveAttachment } from '../../services/attachments';
 
 const F = he.txForm;
 const MAIN_KINDS = ['expense', 'income', 'transfer'] as const;
@@ -29,6 +31,21 @@ const USER_KINDS: readonly TransactionKind[] = [...MAIN_KINDS, ...EXTRA_KINDS];
 type Errors = Partial<Record<'amount' | 'account' | 'toAccount' | 'note' | 'direction' | 'date' | 'form', string>>;
 
 const INDENT = String.fromCharCode(160).repeat(2);
+
+/**
+ * Transactions created and kept in sync by another module. Deleting them here would leave that
+ * module inconsistent (e.g. a paid card statement without its payment), so they're deleted there.
+ */
+function managedBy(t: Transaction): string | undefined {
+  const l = t.links ?? {};
+  if (t.kind === 'card_payment') return he.cards.title;
+  if (l.loanId || t.kind === 'loan_disbursement') return he.debts.title;
+  if (l.lendingId && t.kind === 'lending_out') return he.debts.title;
+  if (l.checkId) return he.checks.title;
+  if (l.tradeId) return he.invest.title;
+  if (l.payslipId) return he.salary.title;
+  return undefined;
+}
 
 function hasCategory(kind: TransactionKind) {
   return kind === 'expense' || kind === 'income' || kind === 'refund';
@@ -83,6 +100,7 @@ export function TransactionFormScreen() {
   const [contextState, setContext] = useState<Transaction['context'] | undefined>();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [status, setStatus] = useState<Transaction['status']>('cleared');
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
 
@@ -128,6 +146,7 @@ export function TransactionFormScreen() {
       setContext(t.context);
       setPaymentMethod(t.paymentMethod ?? '');
       setStatus(t.status);
+      setAttachmentIds(t.attachmentIds);
       setLoaded(true);
     })();
   }, [id, navigate]);
@@ -196,6 +215,7 @@ export function TransactionFormScreen() {
         paymentMethod: (paymentMethod || undefined) as Transaction['paymentMethod'],
         status,
         business: existing?.business,
+        attachmentIds,
         source: existing?.source,
       };
       const inst: InstallmentInput | undefined = useInst
@@ -449,6 +469,15 @@ export function TransactionFormScreen() {
           {(p) => <textarea {...p} rows={2} className={`${inputCls} py-2`} value={note} onChange={(e) => setNote(e.target.value)} />}
         </Field>
 
+        <Receipts
+          ids={attachmentIds}
+          onAdd={async (file) => {
+            const aid = await saveAttachment(db, file);
+            setAttachmentIds((x) => [...x, aid]);
+          }}
+          onRemove={(aid) => setAttachmentIds((x) => x.filter((y) => y !== aid))}
+        />
+
         <details className="rounded-xl border border-line bg-surface">
           <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium">{`${F.paymentMethod}, ${F.tags}, ${F.status}`}</summary>
           <div className="flex flex-col gap-4 p-3 pt-0">
@@ -486,11 +515,12 @@ export function TransactionFormScreen() {
         <button type="submit" disabled={saving} className={primaryBtn}>
           {he.common.save}
         </button>
-        {existing && (
+        {existing && !managedBy(existing) && (
           <button type="button" onClick={onDelete} className={dangerBtn}>
             {he.common.delete}
           </button>
         )}
+        {existing && managedBy(existing) && <p className="text-center text-xs text-muted">{F.managedBy(managedBy(existing)!)}</p>}
       </form>
     </>
   );

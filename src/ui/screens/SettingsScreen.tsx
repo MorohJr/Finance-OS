@@ -3,7 +3,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { SectionTitle } from '../components/Card';
 import { BottomSheet } from '../components/BottomSheet';
 import { Icon } from '../components/Icon';
-import { Toggle } from '../components/Form';
+import { Segmented, Toggle } from '../components/Form';
 import { usePlatform, useSettings } from '../hooks';
 import { db } from '../../db/db';
 import type { Theme } from '../../domain/schemas';
@@ -322,10 +322,47 @@ export function SettingsScreen() {
         </section>
 
         <section>
+          <SectionTitle>{he.prefs.title}</SectionTitle>
+          <Group>
+            <div className="flex flex-col gap-2 p-4">
+              <span className="text-sm">{he.prefs.budgetRecognition}</span>
+              <Segmented
+                label={he.prefs.budgetRecognition}
+                value={settings.defaultBudgetRecognition}
+                onChange={(v) => void updateSettings(db, { defaultBudgetRecognition: v })}
+                options={[
+                  { value: 'spread', label: he.installments.spread },
+                  { value: 'upfront', label: he.installments.upfront },
+                ]}
+              />
+            </div>
+            <div className="flex flex-col gap-2 p-4">
+              <span className="text-sm">{he.prefs.costBasis}</span>
+              <Segmented
+                label={he.prefs.costBasis}
+                value={settings.costBasisMethod}
+                onChange={(v) => void updateSettings(db, { costBasisMethod: v })}
+                options={(['moving_average', 'fifo'] as const).map((v) => ({ value: v, label: he.prefs.costBases[v] }))}
+              />
+            </div>
+            <div className="flex flex-col gap-2 p-4">
+              <span className="text-sm">{he.prefs.forecastDays}</span>
+              <Segmented
+                label={he.prefs.forecastDays}
+                value={String(settings.forecastDays)}
+                onChange={(v) => void updateSettings(db, { forecastDays: Number(v) })}
+                options={['30', '60', '90'].map((v) => ({ value: v, label: v }))}
+              />
+            </div>
+          </Group>
+        </section>
+
+        <section>
           <SectionTitle>{S.data}</SectionTitle>
           <Group>
             <ListRow to="/settings/categories" icon="folder" label={S.categories} />
             <ListRow to="/settings/rules" icon="rule" label={S.rules} />
+            <ListRow to="/settings/institutions" icon="wallet" label={S.institutions} />
             <ListRow to="/import" icon="import" label={S.import} />
             <ListRow to="/tax" icon="percent" label={he.tax.title} />
             <ListRow to="/accounts" icon="wallet" label={he.accounts.title} />

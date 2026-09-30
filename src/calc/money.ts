@@ -76,12 +76,14 @@ export function formatAgorot(agorot: number, options: FormatOptions = {}): strin
   return `${sign}₪${body}`;
 }
 
-/** 1800 → "18%", 6667 → "66.67%". */
+/** 1800 → "18%", 6667 → "66.67%", −50 → "−0.5%". */
 export function formatBp(bp: number): string {
   assertInt(bp, 'bp');
-  const whole = Math.trunc(bp / 100);
-  const frac = Math.abs(bp % 100);
-  return frac === 0 ? `${whole}%` : `${whole}.${String(frac).padStart(2, '0').replace(/0$/, '')}%`;
+  const sign = bp < 0 ? MINUS : '';
+  const abs = Math.abs(bp);
+  const whole = Math.floor(abs / 100);
+  const frac = abs % 100;
+  return `${sign}${frac === 0 ? whole : `${whole}.${String(frac).padStart(2, '0').replace(/0$/, '')}`}%`;
 }
 
 // ---------------------------------------------------------------------------

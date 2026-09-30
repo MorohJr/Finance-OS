@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import type { Account, Business, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, TaxSettings, Transaction, WishItem } from '../domain/schemas';
 import { loadBusinessOverview, taxSettingsAt } from '../services/business';
+import { TAX_DEFAULTS_2026 } from '../db/seed.data';
 import type { BusinessOverview } from '../calc/business/overview';
 import { portfolio, type Portfolio } from '../calc/investments';
 import { fundViews, type FundView } from '../calc/pension';
@@ -219,9 +220,9 @@ export function usePortfolio(): Portfolio | undefined {
       db.pricePoints.toArray(),
       db.fxRates.toArray(),
       db.settings.get(SETTINGS_ID),
-      db.taxSettings.orderBy('effectiveFrom').last(),
+      taxSettingsAt(db, todayIL()),
     ]);
-    return portfolio(securities, trades, prices, fx, { method: settings?.costBasisMethod ?? 'moving_average', today: todayIL(), capitalGainsRateBp: tax?.capitalGainsRateBp ?? 2500 });
+    return portfolio(securities, trades, prices, fx, { method: settings?.costBasisMethod ?? 'moving_average', today: todayIL(), capitalGainsRateBp: tax?.capitalGainsRateBp ?? TAX_DEFAULTS_2026.capitalGainsRateBp });
   }, []);
 }
 

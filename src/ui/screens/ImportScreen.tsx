@@ -321,7 +321,7 @@ export function ImportScreen() {
                         <>
                           <select
                             aria-label={he.txForm.category}
-                            className="min-h-9 max-w-44 rounded-lg border border-line bg-surface-2 px-2 text-xs"
+                            className="min-h-9 max-w-44 rounded-lg border border-line bg-surface-2 px-2 text-base"
                             value={r.categoryId ?? ''}
                             onChange={(e) => updateRow(i, { categoryId: e.target.value || undefined })}
                           >

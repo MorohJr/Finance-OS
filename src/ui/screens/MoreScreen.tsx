@@ -1,6 +1,5 @@
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ListGroup, ListRow } from '../components/ListRow';
-import { MODULES } from '../modules';
 import { useBusiness } from '../data';
 import { he } from '../strings.he';
 
@@ -29,7 +28,7 @@ export function MoreScreen() {
         {!business && businessGroup}
         <ListGroup>
           <ListRow to="/import" icon="import" label={he.more.import} />
-          <ListRow to={`/soon/reports`} icon={MODULES.reports.icon} label={MODULES.reports.label} hint={he.common.comingInStage(MODULES.reports.stage)} />
+          <ListRow to="/reports" icon="report" label={he.more.reports} />
         </ListGroup>
         <ListGroup>
           <ListRow to="/settings" icon="settings" label={he.more.settings} />

@@ -10,6 +10,8 @@ import { monthRange, nextMonth, previousMonth } from '../calc/cashflow';
 import { currentMonthIL, todayIL } from '../calc/dates';
 import { sumAgorot } from '../calc/money';
 import { newSystemFields, validate } from './entity';
+import { taxSettingsAt } from './business';
+import { TAX_DEFAULTS_2026 } from '../db/seed.data';
 
 /**
  * Net worth as of a date (SPEC 10.11), computed from everything in the DB.
@@ -17,7 +19,7 @@ import { newSystemFields, validate } from './entity';
  * their due date, prices and pension balances are the latest known on that date.
  */
 export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth> {
-  const [accounts, txs, cards, plans, statements, loans, lendings, checks, securities, trades, prices, fx, funds, pensionSnaps, settings, tax] = await Promise.all([
+  const [accounts, txs, cards, plans, statements, loans, lendings, checks, securities, trades, prices, fx, funds, pensionSnaps, settings] = await Promise.all([
     db.accounts.filter((a) => !a.deletedAt && a.createdAt.slice(0, 10) <= asOf).toArray(),
     db.transactions.filter((t) => !t.deletedAt).toArray(),
     db.cards.filter((c) => !c.deletedAt && c.kind === 'credit').toArray(),
@@ -33,8 +35,8 @@ export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth>
     db.pensionFunds.toArray(),
     db.pensionSnapshots.toArray(),
     db.settings.get(SETTINGS_ID),
-    db.taxSettings.orderBy('effectiveFrom').last(),
   ]);
+  const tax = await taxSettingsAt(db, asOf);
   const until = txs.filter((t) => t.date <= asOf);
 
   let cardOpen = 0;
@@ -54,7 +56,7 @@ export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth>
     }
   }
 
-  const pf = portfolio(securities, trades, prices, fx, { method: settings?.costBasisMethod ?? 'moving_average', today: asOf, capitalGainsRateBp: tax?.capitalGainsRateBp ?? 2500, asOf });
+  const pf = portfolio(securities, trades, prices, fx, { method: settings?.costBasisMethod ?? 'moving_average', today: asOf, capitalGainsRateBp: tax?.capitalGainsRateBp ?? TAX_DEFAULTS_2026.capitalGainsRateBp, asOf });
   const pension = pensionTotals(funds, pensionSnaps, asOf);
 
   return computeNetWorth({

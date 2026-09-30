@@ -98,6 +98,8 @@ test('PIN locks the app after reload and unlocks with the right code', async ({ 
   await page.getByLabel('אימות הקוד').fill('2468');
   await page.getByRole('button', { name: 'שמירה' }).first().click();
   await expect(page.getByText('האפליקציה ננעלת אחרי 5 דקות ברקע')).toBeVisible();
+  // Setting the PIN doesn't lock right away.
+  await expect(page.getByRole('dialog', { name: 'הזן קוד' })).toBeHidden();
 
   await page.reload();
   const lock = page.getByRole('dialog', { name: 'הזן קוד' });

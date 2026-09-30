@@ -5,6 +5,12 @@ import { shouldLock, verifyPin } from '../../services/pin';
 import { he } from '../strings.he';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
+const UNLOCK_EVENT = 'finance-os:unlocked';
+
+/** Setting a new PIN counts as unlocked for this session; it locks next launch or after 5 minutes away. */
+export function markUnlocked(): void {
+  window.dispatchEvent(new Event(UNLOCK_EVENT));
+}
 
 /**
  * Lock screen (SPEC 3.4, 12): shown at launch when a PIN is set, and after 5 minutes in the background.
@@ -17,6 +23,12 @@ export function PinLock() {
   const [error, setError] = useState(false);
   const hiddenAt = useRef<number | null>(null);
   const enabled = !!settings?.pinHash;
+
+  useEffect(() => {
+    const onUnlock = () => setLocked(false);
+    window.addEventListener(UNLOCK_EVENT, onUnlock);
+    return () => window.removeEventListener(UNLOCK_EVENT, onUnlock);
+  }, []);
 
   useEffect(() => {
     const onVisibility = () => {

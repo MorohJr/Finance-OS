@@ -19,10 +19,10 @@ const GROUPS: { key: keyof typeof he.accountGroups; kinds: Account['kind'][] }[]
   { key: 'other', kinds: ['prepaid', 'platform'] },
 ];
 
-function AccountRow({ a, balance, color, institution }: { a: Account; balance: number; color?: string; institution?: string }) {
+function AccountRow({ a, balance, color, institution, logoId }: { a: Account; balance: number; color?: string; institution?: string; logoId?: string }) {
   return (
     <Link to={`/accounts/${a.id}`} className="flex min-h-16 items-center gap-3 px-4 py-2.5 active:bg-surface-2">
-      <Monogram name={institution ?? a.name} color={a.color ?? color} />
+      <Monogram name={institution ?? a.name} color={a.color ?? color} logoId={logoId} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{a.name}</span>
         <span className="block truncate text-xs text-muted">
@@ -50,7 +50,7 @@ export function AccountsScreen() {
 
   const row = (a: Account) => {
     const inst = a.institutionId ? institutions.get(a.institutionId) : undefined;
-    return <AccountRow key={a.id} a={a} balance={balances.get(a.id) ?? 0} color={inst?.color} institution={inst?.name} />;
+    return <AccountRow key={a.id} a={a} balance={balances.get(a.id) ?? 0} color={inst?.color} institution={inst?.name} logoId={inst?.logoAttachmentId} />;
   };
 
   return (

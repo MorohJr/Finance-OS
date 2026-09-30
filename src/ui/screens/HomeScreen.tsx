@@ -186,7 +186,7 @@ export function HomeScreen() {
           </Metric>
         </div>
 
-        {active.length === 0 ? (
+        {active.length === 0 && (
           <Card>
             <p className="font-medium">{H.emptyTitle}</p>
             <p className="mt-1 text-sm text-muted">{H.emptyBody}</p>
@@ -195,28 +195,6 @@ export function HomeScreen() {
               {H.addAccount}
             </Link>
           </Card>
-        ) : (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.accounts}</SectionTitle>
-              <Link to="/accounts" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {visible.slice(0, 5).map((a) => {
-                const inst = a.institutionId ? institutions.get(a.institutionId) : undefined;
-                const bal = balances.get(a.id) ?? 0;
-                return (
-                  <Link key={a.id} to={`/accounts/${a.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-surface-2">
-                    <Monogram name={inst?.name ?? a.name} color={a.color ?? inst?.color} size={32} />
-                    <span className="flex-1 truncate">{a.name}</span>
-                    <Money agorot={bal} tone={bal < 0 ? 'expense' : 'plain'} className="font-medium" />
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
         )}
 
         {(cards ?? []).some((c) => c.status === 'active') && (
@@ -255,112 +233,6 @@ export function HomeScreen() {
             </div>
             {forecast30.belowZero && <p className="mb-2 px-1 text-xs text-warning">{he.forecast.belowZero(formatDisplayDate(forecast30.minDate))}</p>}
             <ForecastEvents events={forecast30.events} limit={6} />
-          </section>
-        )}
-
-        {reminders.length > 0 && (
-          <section>
-            <SectionTitle>{H.renewSoon}</SectionTitle>
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {reminders.slice(0, 5).map((r) => (
-                <Link key={`${r.recurringId}-${r.kind}`} to={`/plan/recurring/${r.recurringId}`} className="flex min-h-12 items-center justify-between px-4 py-2 text-sm">
-                  <span>
-                    {recurringById.get(r.recurringId)?.name} · <span className="text-muted">{he.recurring.reminders[r.kind]}</span>
-                  </span>
-                  <span className="num text-muted">{formatDisplayDate(r.date)}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {business && bizOverview && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{business.name}</SectionTitle>
-              <Link to="/business" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted">{he.business.incomeThisMonth}</p>
-                <Money agorot={bizOverview.incomeThisMonth} className="font-medium" />
-              </div>
-              <div>
-                <p className="text-xs text-muted">{he.business.setAsideYtd}</p>
-                <Money agorot={bizOverview.setAsideYtd} className="font-medium" />
-              </div>
-              {bizOverview.currentVat && (
-                <div>
-                  <p className="text-xs text-muted">{he.business.vatThisPeriod}</p>
-                  <Money agorot={bizOverview.currentVat.vatDue} className="font-medium" />
-                </div>
-              )}
-              {bizOverview.patur && tax && (
-                <div className="col-span-2 flex flex-col gap-1">
-                  <p className="text-xs text-muted">
-                    {he.business.turnover} <Money agorot={bizOverview.patur.turnoverYtd} /> / <Money agorot={tax.paturCeilingAgorot} />
-                  </p>
-                  <ProgressBar usedBp={bizOverview.patur.pctOfCeilingBp} state={bizOverview.patur.alerts.includes('over') ? 'over' : bizOverview.patur.alerts.length ? 'near' : 'ok'} label={he.business.patur} />
-                </div>
-              )}
-            </Card>
-          </section>
-        )}
-
-        {portfolio && portfolio.totalValue > 0 && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.investments}</SectionTitle>
-              <Link to="/investments" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="flex flex-col gap-3">
-              <div className="flex items-baseline justify-between">
-                <Money agorot={portfolio.totalValue} className="text-xl font-bold" />
-                <span className="text-sm">
-                  <Money agorot={portfolio.unrealized} tone={portfolio.unrealized >= 0 ? 'income' : 'expense'} />
-                  {portfolio.unrealizedBp !== null && <span className="num text-muted"> ({formatBp(portfolio.unrealizedBp)})</span>}
-                </span>
-              </div>
-              {portfolio.sectors.length > 1 && (
-                <Suspense fallback={<div className="h-44" />}>
-                  <SectorPie data={portfolio.sectors.map((x) => ({ name: x.sectorId ? (sectorNames.get(x.sectorId)?.name ?? he.invest.noSector) : he.invest.noSector, value: x.marketValue, weightBp: x.weightBp }))} />
-                </Suspense>
-              )}
-            </Card>
-          </section>
-        )}
-
-        {(wishes ?? []).some((w) => w.item.status === 'active') && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.wishes}</SectionTitle>
-              <Link to="/plan/wish" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="flex flex-col gap-3">
-              {(wishes ?? [])
-                .filter((w) => w.item.status === 'active')
-                .slice(0, 3)
-                .map((w) => (
-                  <Link key={w.item.id} to={`/plan/wish/${w.item.id}`} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-sm">
-                      <span>{w.item.name}</span>
-                      <span className="flex gap-1">
-                        <Money agorot={w.status.savedOrPaid} />
-                        <span className="text-muted">
-                          / <Money agorot={w.item.priceAgorot} />
-                        </span>
-                      </span>
-                    </div>
-                    <ProgressBar usedBp={w.status.progressBp} state={w.status.label === 'behind' ? 'near' : 'ok'} label={w.item.name} />
-                  </Link>
-                ))}
-            </Card>
           </section>
         )}
 
@@ -410,6 +282,136 @@ export function HomeScreen() {
                   </div>
                 ))}
             </Card>
+          </section>
+        )}
+
+        {business && bizOverview && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{business.name}</SectionTitle>
+              <Link to="/business" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted">{he.business.incomeThisMonth}</p>
+                <Money agorot={bizOverview.incomeThisMonth} className="font-medium" />
+              </div>
+              <div>
+                <p className="text-xs text-muted">{he.business.setAsideYtd}</p>
+                <Money agorot={bizOverview.setAsideYtd} className="font-medium" />
+              </div>
+              {bizOverview.currentVat && (
+                <div>
+                  <p className="text-xs text-muted">{he.business.vatThisPeriod}</p>
+                  <Money agorot={bizOverview.currentVat.vatDue} className="font-medium" />
+                </div>
+              )}
+              {bizOverview.patur && tax && (
+                <div className="col-span-2 flex flex-col gap-1">
+                  <p className="text-xs text-muted">
+                    {he.business.turnover} <Money agorot={bizOverview.patur.turnoverYtd} /> / <Money agorot={tax.paturCeilingAgorot} />
+                  </p>
+                  <ProgressBar usedBp={bizOverview.patur.pctOfCeilingBp} state={bizOverview.patur.alerts.includes('over') ? 'over' : bizOverview.patur.alerts.length ? 'near' : 'ok'} label={he.business.patur} />
+                </div>
+              )}
+            </Card>
+          </section>
+        )}
+
+        {(wishes ?? []).some((w) => w.item.status === 'active') && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.wishes}</SectionTitle>
+              <Link to="/plan/wish" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="flex flex-col gap-3">
+              {(wishes ?? [])
+                .filter((w) => w.item.status === 'active')
+                .slice(0, 3)
+                .map((w) => (
+                  <Link key={w.item.id} to={`/plan/wish/${w.item.id}`} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{w.item.name}</span>
+                      <span className="flex gap-1">
+                        <Money agorot={w.status.savedOrPaid} />
+                        <span className="text-muted">
+                          / <Money agorot={w.item.priceAgorot} />
+                        </span>
+                      </span>
+                    </div>
+                    <ProgressBar usedBp={w.status.progressBp} state={w.status.label === 'behind' ? 'near' : 'ok'} label={w.item.name} />
+                  </Link>
+                ))}
+            </Card>
+          </section>
+        )}
+
+        {reminders.length > 0 && (
+          <section>
+            <SectionTitle>{H.renewSoon}</SectionTitle>
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+              {reminders.slice(0, 5).map((r) => (
+                <Link key={`${r.recurringId}-${r.kind}`} to={`/plan/recurring/${r.recurringId}`} className="flex min-h-12 items-center justify-between px-4 py-2 text-sm">
+                  <span>
+                    {recurringById.get(r.recurringId)?.name} · <span className="text-muted">{he.recurring.reminders[r.kind]}</span>
+                  </span>
+                  <span className="num text-muted">{formatDisplayDate(r.date)}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {portfolio && portfolio.totalValue > 0 && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.investments}</SectionTitle>
+              <Link to="/investments" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="flex flex-col gap-3">
+              <div className="flex items-baseline justify-between">
+                <Money agorot={portfolio.totalValue} className="text-xl font-bold" />
+                <span className="text-sm">
+                  <Money agorot={portfolio.unrealized} tone={portfolio.unrealized >= 0 ? 'income' : 'expense'} />
+                  {portfolio.unrealizedBp !== null && <span className="num text-muted"> ({formatBp(portfolio.unrealizedBp)})</span>}
+                </span>
+              </div>
+              {portfolio.sectors.length > 1 && (
+                <Suspense fallback={<div className="h-44" />}>
+                  <SectorPie data={portfolio.sectors.map((x) => ({ name: x.sectorId ? (sectorNames.get(x.sectorId)?.name ?? he.invest.noSector) : he.invest.noSector, value: x.marketValue, weightBp: x.weightBp }))} />
+                </Suspense>
+              )}
+            </Card>
+          </section>
+        )}
+
+        {active.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.accounts}</SectionTitle>
+              <Link to="/accounts" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+              {visible.slice(0, 5).map((a) => {
+                const inst = a.institutionId ? institutions.get(a.institutionId) : undefined;
+                const bal = balances.get(a.id) ?? 0;
+                return (
+                  <Link key={a.id} to={`/accounts/${a.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-surface-2">
+                    <Monogram name={inst?.name ?? a.name} color={a.color ?? inst?.color} size={32} logoId={inst?.logoAttachmentId} />
+                    <span className="flex-1 truncate">{a.name}</span>
+                    <Money agorot={bal} tone={bal < 0 ? 'expense' : 'plain'} className="font-medium" />
+                  </Link>
+                );
+              })}
+            </div>
           </section>
         )}
       </div>
