@@ -1,7 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, Payee, Recurring, Transaction, WishItem } from '../domain/schemas';
+import type { Account, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, Transaction, WishItem } from '../domain/schemas';
+import { portfolio, type Portfolio } from '../calc/investments';
+import { fundViews, type FundView } from '../calc/pension';
 import { wishStatus, type WishStatus } from '../calc/wish';
 import { lendingStatus, loanInterestByTx, loanStatus, type LendingStatus, type LoanStatus } from '../calc/loans';
 import { todayIL } from '../calc/dates';
@@ -202,4 +204,30 @@ export function useAttachmentUrl(id: string | undefined): string | undefined {
     if (url) URL.revokeObjectURL(url);
   }, [url]);
   return url;
+}
+
+export function usePortfolio(): Portfolio | undefined {
+  return useLiveQuery(async () => {
+    const [securities, trades, prices, fx, settings, tax] = await Promise.all([
+      db.securities.filter((s) => !s.deletedAt).toArray(),
+      db.investmentTrades.filter((t) => !t.deletedAt).toArray(),
+      db.pricePoints.toArray(),
+      db.fxRates.toArray(),
+      db.settings.get(SETTINGS_ID),
+      db.taxSettings.orderBy('effectiveFrom').last(),
+    ]);
+    return portfolio(securities, trades, prices, fx, { method: settings?.costBasisMethod ?? 'moving_average', today: todayIL(), capitalGainsRateBp: tax?.capitalGainsRateBp ?? 2500 });
+  }, []);
+}
+
+export function usePension(): FundView[] | undefined {
+  return useLiveQuery(async () => fundViews(await db.pensionFunds.toArray(), await db.pensionSnapshots.toArray(), todayIL()), []);
+}
+
+export function useSectors(): Sector[] | undefined {
+  return useLiveQuery(() => db.sectors.filter((s) => !s.deletedAt).sortBy('sortOrder'), []);
+}
+
+export function useLastSnapshot(): NetWorthSnapshot | undefined {
+  return useLiveQuery(() => db.netWorthSnapshots.orderBy('month').last(), []);
 }

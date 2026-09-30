@@ -24,6 +24,9 @@ import { LoanDetailScreen } from './screens/LoanDetailScreen';
 import { LendingDetailScreen, LendingFormScreen } from './screens/LendingScreens';
 import { CheckFormScreen, ChecksScreen } from './screens/ChecksScreen';
 import { WishDetailScreen, WishListScreen } from './screens/WishScreens';
+import { InvestmentsScreen } from './screens/InvestmentsScreen';
+import { PricesScreen, SecurityScreen, TradeFormScreen } from './screens/SecurityScreens';
+import { FundScreen, PensionScreen } from './screens/PensionScreens';
 
 // SheetJS is large; load the importer only when it's opened.
 const ImportScreen = lazy(() => import('./screens/ImportScreen').then((m) => ({ default: m.ImportScreen })));
@@ -85,6 +88,12 @@ export function App() {
             <Route path="debts/lendings/new" element={<Fresh>{(k) => <LendingFormScreen key={k} />}</Fresh>} />
             <Route path="debts/lendings/:id" element={<LendingDetailScreen />} />
             <Route path="debts/lendings/:id/edit" element={<Fresh>{(k) => <LendingFormScreen key={k} />}</Fresh>} />
+            <Route path="investments" element={<InvestmentsScreen />} />
+            <Route path="investments/prices" element={<PricesScreen />} />
+            <Route path="investments/security/:id" element={<Fresh>{(k) => <SecurityScreen key={k} />}</Fresh>} />
+            <Route path="investments/trade/:id" element={<Fresh>{(k) => <TradeFormScreen key={k} />}</Fresh>} />
+            <Route path="pension" element={<PensionScreen />} />
+            <Route path="pension/:id" element={<Fresh>{(k) => <FundScreen key={k} />}</Fresh>} />
             <Route path="checks" element={<ChecksScreen />} />
             <Route path="checks/new" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />
             <Route path="checks/:id" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />

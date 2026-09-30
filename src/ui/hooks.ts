@@ -7,6 +7,7 @@ import { hasUserData } from '../services/settings';
 import { isInstalledApp, requestPersistentStorage } from '../services/platform';
 import { syncCardStatements } from '../services/cards';
 import { runRecurringAutoCreate } from '../services/recurring';
+import { ensureNetWorthSnapshots } from '../services/networth';
 
 export function useSettings(): Settings | undefined {
   return useLiveQuery(() => db.settings.get(SETTINGS_ID), []);
@@ -69,6 +70,7 @@ export function useStartupJobs(): void {
         // Recurring first: an auto-created card charge must be in the statement before it closes.
         await runRecurringAutoCreate(db);
         await syncCardStatements(db);
+        await ensureNetWorthSnapshots(db);
       } catch (e) {
         console.error('startup jobs failed', e);
       } finally {

@@ -179,7 +179,8 @@ export const Transaction = z
       ctx.addIssue({ code: 'custom', message: 'חובה חשבון או כרטיס', path: ['accountId'] });
     }
     if (t.kind === 'transfer') {
-      if (!t.toAccountId) ctx.addIssue({ code: 'custom', message: 'העברה דורשת חשבון יעד', path: ['toAccountId'] });
+      // SPEC 6.15: a self-deposit to a pension fund is a transfer out of the bank, linked to the fund.
+      if (!t.toAccountId && !t.links?.pensionFundId) ctx.addIssue({ code: 'custom', message: 'העברה דורשת חשבון יעד', path: ['toAccountId'] });
       if (t.toAccountId && t.toAccountId === t.accountId) {
         ctx.addIssue({ code: 'custom', message: 'חשבון מקור ויעד זהים', path: ['toAccountId'] });
       }

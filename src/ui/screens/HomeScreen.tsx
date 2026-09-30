@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Banner } from '../components/Banner';
 import { Card, SectionTitle } from '../components/Card';
@@ -6,7 +6,8 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors } from '../data';
+import { formatBp } from '../../calc/money';
 import { monthlyDebt } from '../../calc/loans';
 import { ForecastEvents } from '../components/ForecastEvents';
 import { ProgressBar } from '../components/ProgressBar';
@@ -24,6 +25,7 @@ import { sumAgorot } from '../../calc/money';
 import { he } from '../strings.he';
 
 const H = he.home;
+const SectorPie = lazy(() => import('../components/SectorPie'));
 
 function Metric({ label, children, to }: { label: string; children?: ReactNode; to?: string }) {
   const body = (
@@ -70,6 +72,10 @@ export function HomeScreen() {
   const checks = useChecks();
   const flowOptions = useFlowOptions();
   const wishes = useWishes();
+  const portfolio = usePortfolio();
+  const pension = usePension();
+  const lastSnapshot = useLastSnapshot();
+  const sectorNames = byId(useSectors());
   const nw = useMemo(
     () =>
       computeNetWorth({
@@ -79,8 +85,11 @@ export function HomeScreen() {
         loansRemainingPrincipal: sumAgorot((loans ?? []).map((l) => Math.max(0, l.status.remainingPrincipal))),
         lendingRemaining: sumAgorot((lendings ?? []).map((l) => l.status.remaining)),
         checksIssuedPending: sumAgorot((checks ?? []).filter((c) => c.direction === 'issued' && (c.status === 'pending' || c.status === 'deposited')).map((c) => c.amountAgorot)),
+        securitiesMarketValue: portfolio?.totalValue ?? 0,
+        pensionLiquid: sumAgorot((pension ?? []).filter((f) => f.fund.isLiquid).map((f) => f.balance)),
+        pensionIlliquid: sumAgorot((pension ?? []).filter((f) => !f.fund.isLiquid).map((f) => f.balance)),
       }),
-    [active, balances, cardTotals, loans, lendings, checks],
+    [active, balances, cardTotals, loans, lendings, checks, portfolio, pension],
   );
   const debtThisMonth = useMemo(() => (loans && spread ? monthlyDebt(loans.map((l) => l.status), spread.charges, currentMonthIL()) : 0), [loans, spread]);
   const today = todayIL();
@@ -109,7 +118,13 @@ export function HomeScreen() {
         </div>
         <p className="text-sm text-on-brand-muted">{H.netWorth}</p>
         {active.length ? <Money agorot={nw.netWorth} className="mt-1 block text-4xl font-bold" /> : <p className="num mt-1 text-4xl font-bold">—</p>}
-        <p className="mt-1 text-sm text-on-brand-muted">{active.length ? H.netWorthPartial : H.netWorthPending}</p>
+        {!active.length && <p className="mt-1 text-sm text-on-brand-muted">{H.netWorthPending}</p>}
+        {active.length > 0 && lastSnapshot && lastSnapshot.month < currentMonthIL() && (
+          <p className="mt-1 text-sm text-on-brand-muted">
+            {H.changeFromLastMonth('')}
+            <Money agorot={nw.netWorth - lastSnapshot.netWorth} signed className="text-on-brand" />
+          </p>
+        )}
       </header>
 
       <div className="flex flex-col gap-4 px-4 pt-4">
@@ -253,6 +268,31 @@ export function HomeScreen() {
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {portfolio && portfolio.totalValue > 0 && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.investments}</SectionTitle>
+              <Link to="/investments" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="flex flex-col gap-3">
+              <div className="flex items-baseline justify-between">
+                <Money agorot={portfolio.totalValue} className="text-xl font-bold" />
+                <span className="text-sm">
+                  <Money agorot={portfolio.unrealized} tone={portfolio.unrealized >= 0 ? 'income' : 'expense'} />
+                  {portfolio.unrealizedBp !== null && <span className="num text-muted"> ({formatBp(portfolio.unrealizedBp)})</span>}
+                </span>
+              </div>
+              {portfolio.sectors.length > 1 && (
+                <Suspense fallback={<div className="h-44" />}>
+                  <SectorPie data={portfolio.sectors.map((x) => ({ name: x.sectorId ? (sectorNames.get(x.sectorId)?.name ?? he.invest.noSector) : he.invest.noSector, value: x.marketValue, weightBp: x.weightBp }))} />
+                </Suspense>
+              )}
+            </Card>
           </section>
         )}
 
