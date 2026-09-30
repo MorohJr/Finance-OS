@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import type { Account, Business, Card, Debt, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, TaxSettings, Transaction, WishItem } from '../domain/schemas';
 import { loadBusinessOverview, taxSettingsAt } from '../services/business';
+import { isDemoMode } from '../services/demo/demo';
 import { TAX_DEFAULTS_2026 } from '../db/seed.data';
 import type { BusinessOverview } from '../calc/business/overview';
 import { portfolio, type Portfolio } from '../calc/investments';
@@ -266,4 +267,9 @@ export function useDebts(): { debt: Debt; status: DebtStatus }[] | undefined {
     const today = todayIL();
     return debts.map((debt) => ({ debt, status: debtStatus(debt, payments, today) }));
   }, []);
+}
+
+/** True while demo data is shown (the real data is stashed in a separate database). */
+export function useDemoMode(): boolean | undefined {
+  return useLiveQuery(() => isDemoMode(db), []);
 }

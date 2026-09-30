@@ -26,7 +26,11 @@ export type TaxInput = Omit<TaxT, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'
 export async function saveTaxSettings(db: FinanceDB, input: TaxInput, today: string = todayIL()): Promise<TaxT> {
   const current = await taxSettingsAt(db, today);
   const ts = nowIso();
-  if (current && current.effectiveFrom === today) {
+  // Rates entered for the first time (the version in effect never had them): nothing was ever
+  // calculated with it, so update it in place. Otherwise back-dated incomes from before today
+  // would find a version without rates.
+  const neverSet = current && current.incomeTaxRateBp === null && current.nationalInsuranceRateBp === null && current.nationalInsuranceMonthlyAgorot === undefined;
+  if (current && (current.effectiveFrom === today || neverSet)) {
     const row = validate(TaxSettings, { ...current, ...input, updatedAt: ts });
     await db.taxSettings.put(row);
     return row;

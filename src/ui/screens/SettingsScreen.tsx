@@ -15,6 +15,8 @@ import { formatDisplayDate, todayIL } from '../../calc/dates';
 import { he } from '../strings.he';
 import { ListRow } from '../components/ListRow';
 import { CsvExport, PinSettings } from './SettingsExtras';
+import { DemoSection } from './DemoSection';
+import { useDemoMode } from '../data';
 
 const S = he.settings;
 
@@ -302,6 +304,7 @@ function RestoreBackup() {
 export function SettingsScreen() {
   const settings = useSettings();
   const { persisted, installed } = usePlatform();
+  const demo = useDemoMode();
   if (!settings) return <ScreenHeader title={S.title} back />;
 
   return (
@@ -383,11 +386,24 @@ export function SettingsScreen() {
           </Group>
         </section>
 
+        <section id="demo">
+          <SectionTitle>{he.demo.title}</SectionTitle>
+          <Group>
+            <DemoSection />
+          </Group>
+        </section>
+
         <section id="backup">
           <SectionTitle>{S.backup}</SectionTitle>
           <Group>
-            <ExportBackup lastBackupAt={settings.lastBackupAt} />
-            <RestoreBackup />
+            {demo ? (
+              <p className="p-4 text-sm text-muted">{he.demo.blocked}</p>
+            ) : (
+              <>
+                <ExportBackup lastBackupAt={settings.lastBackupAt} />
+                <RestoreBackup />
+              </>
+            )}
           </Group>
         </section>
 

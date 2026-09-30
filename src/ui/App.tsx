@@ -4,6 +4,7 @@ import { BottomNav } from './components/BottomNav';
 import { ToastProvider } from './components/Toast';
 import { PinLock } from './components/PinLock';
 import { UpdateBanner } from './components/UpdateBanner';
+import { DemoBanner } from './components/DemoBanner';
 import { QuickAddSheet } from './screens/QuickAddSheet';
 import { HomeScreen } from './screens/HomeScreen';
 import { TransactionsScreen } from './screens/TransactionsScreen';
@@ -66,6 +67,7 @@ function Layout() {
   const [addOpen, setAddOpen] = useState(false);
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <DemoBanner />
       <Suspense fallback={<div className="min-h-dvh" />}>
         <Outlet />
       </Suspense>

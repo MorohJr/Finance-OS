@@ -30,9 +30,14 @@ describe('business module (stage 8, golden 14.4–14.6 through services)', () =>
     expect(ratesReady(await taxSettingsAt(db, '2026-09-30'))).toBe(false);
     await expect(saveBusinessIncome(db, { amountAgorot: 1, mode: 'excl_vat', date: '2026-09-30', accountId: 'x', received: true })).rejects.toThrow('rates_missing');
     const t = await saveTaxSettings(db, { vatRateBp: 1800, incomeTaxRateBp: 2000, nationalInsuranceRateBp: 1600, reserveBasis: 'net_income', capitalGainsRateBp: 2500, paturCeilingAgorot: 12_283_300, pensionAvgWageAgorot: 1_376_900, pensionLowRateBp: 445, pensionHighRateBp: 1255, vatDueDay: 15 }, '2026-09-30');
-    expect(t.effectiveFrom).toBe('2026-09-30');
-    expect((await taxSettingsAt(db, '2026-09-01'))?.incomeTaxRateBp).toBeNull(); // earlier dates keep the old version
+    expect(t.effectiveFrom).toBe('2026-01-01');
+    // First time rates are entered: they apply to the whole version (back-dated incomes work).
+    expect((await taxSettingsAt(db, '2026-09-01'))?.incomeTaxRateBp).toBe(2000);
     expect(ratesReady(await taxSettingsAt(db, '2026-09-30'))).toBe(true);
+    // A later change is a new version from that day; earlier dates keep the old rates.
+    await saveTaxSettings(db, { vatRateBp: 1800, incomeTaxRateBp: 3100, nationalInsuranceRateBp: 1600, reserveBasis: 'net_income', capitalGainsRateBp: 2500, paturCeilingAgorot: 12_283_300, pensionAvgWageAgorot: 1_376_900, pensionLowRateBp: 445, pensionHighRateBp: 1255, vatDueDay: 15 }, '2026-10-15');
+    expect((await taxSettingsAt(db, '2026-10-01'))?.incomeTaxRateBp).toBe(2000);
+    expect((await taxSettingsAt(db, '2026-10-20'))?.incomeTaxRateBp).toBe(3100);
   });
 
   it('income: saved as total with the breakdown snapshot; reports count net; VAT period due ₪1,740', async () => {

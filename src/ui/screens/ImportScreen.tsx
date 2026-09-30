@@ -6,7 +6,7 @@ import { Money } from '../components/Money';
 import { Icon } from '../components/Icon';
 import { Field, Toggle, inputCls, primaryBtn, secondaryBtn, dangerBtn } from '../components/Form';
 import { useToast } from '../components/Toast';
-import { byId, categoryLabel, useAccounts, useCards, useCategories } from '../data';
+import { byId, categoryLabel, useAccounts, useCards, useCategories, useDemoMode } from '../data';
 import { db } from '../../db/db';
 import type { ImportBatch, ImportPreset } from '../../domain/schemas';
 import { readGrid, type Grid } from '../../import/read';
@@ -67,6 +67,7 @@ export function ImportScreen() {
   const categoriesList = useCategories();
   const categories = byId(categoriesList);
   const presets = useLiveQuery(() => db.importPresets.toArray(), []);
+  const demo = useDemoMode();
   const toast = useToast();
   const [targetKey, setTargetKey] = useState('');
   const [step, setStep] = useState<Step>({ kind: 'pick' });
@@ -160,7 +161,8 @@ export function ImportScreen() {
     <>
       <ScreenHeader title={I.title} back />
       <div className="flex flex-col gap-4 px-4 pb-8">
-        {step.kind === 'pick' && (
+        {demo && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{he.demo.blocked}</p>}
+        {step.kind === 'pick' && !demo && (
           <>
             <Field label={I.target}>
               {(p) => (

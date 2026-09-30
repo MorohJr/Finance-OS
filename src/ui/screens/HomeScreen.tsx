@@ -6,7 +6,7 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings, useDebts } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings, useDebts, useDemoMode } from '../data';
 import { formatBp } from '../../calc/money';
 import { monthlyDebt } from '../../calc/loans';
 import { ForecastEvents } from '../components/ForecastEvents';
@@ -73,6 +73,7 @@ export function HomeScreen() {
   const flowOptions = useFlowOptions();
   const wishes = useWishes();
   const owed = useDebts();
+  const demo = useDemoMode();
   const portfolio = usePortfolio();
   const pension = usePension();
   const lastSnapshot = useLastSnapshot();
@@ -105,6 +106,8 @@ export function HomeScreen() {
   const today = todayIL();
   const budget = useBudget(currentMonthIL());
   const pending = usePending();
+  // Only auto-created recurring charges wait for the user (checks and unpaid invoices are just future items).
+  const recurringPending = (pending ?? []).filter((t) => t.links?.recurringId);
   const recurring = useRecurring();
   const primaryBank = active.find((a) => a.kind === 'bank' && a.isVisibleOnDashboard) ?? active.find((a) => a.kind === 'bank');
   const forecast30 = useForecast(primaryBank?.id, today, 30);
@@ -142,7 +145,7 @@ export function HomeScreen() {
             {isIos() ? he.banners.installBodyIos : he.banners.installBodyOther}
           </Banner>
         )}
-        {backupDue && (
+        {backupDue && !demo && (
           <Banner
             icon="shield"
             tone="warning"
@@ -216,10 +219,10 @@ export function HomeScreen() {
           </section>
         )}
 
-        {(pending ?? []).length > 0 && (
+        {recurringPending.length > 0 && (
           <Link to="/plan/recurring" className="flex min-h-12 items-center gap-2 rounded-card bg-warning-soft px-4 text-sm font-medium text-warning">
             <Icon name="alert" size={18} />
-            {H.pendingBanner((pending ?? []).length)}
+            {H.pendingBanner(recurringPending.length)}
           </Link>
         )}
 
