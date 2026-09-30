@@ -54,3 +54,8 @@ export function computeNetWorth(i: NetWorthInput): NetWorth {
     breakdown: { positiveAccounts, negativeAccounts, securities, pension, lending, cards, loans, checks },
   };
 }
+
+/** Change from the previous month's snapshot (SPEC 7.2 header). */
+export function netWorthChange(current: number, previousSnapshot: number): number {
+  return current - previousSnapshot;
+}

@@ -20,7 +20,9 @@ import { TAX_DEFAULTS_2026 } from '../db/seed.data';
  */
 export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth> {
   const [accounts, txs, cards, plans, statements, loans, lendings, checks, securities, trades, prices, fx, funds, pensionSnaps, settings] = await Promise.all([
-    db.accounts.filter((a) => !a.deletedAt && a.createdAt.slice(0, 10) <= asOf).toArray(),
+    // Not filtered by createdAt: that's when the account was entered in the app, not when it existed.
+    // Balances as of the date come from the transactions (opening balance included).
+    db.accounts.filter((a) => !a.deletedAt).toArray(),
     db.transactions.filter((t) => !t.deletedAt).toArray(),
     db.cards.filter((c) => !c.deletedAt && c.kind === 'credit').toArray(),
     db.installmentPlans.filter((p) => !p.deletedAt).toArray(),

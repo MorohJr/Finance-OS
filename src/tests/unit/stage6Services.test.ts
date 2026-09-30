@@ -54,6 +54,16 @@ describe('pension (6.15)', () => {
 });
 
 describe('net worth snapshots (6.13)', () => {
+  it('an account entered today with an older opening balance counts in past months (regression)', async () => {
+    const db = new FinanceDB(`s6r-${crypto.randomUUID()}`);
+    dbs.push(db);
+    await db.open();
+    await createAccount(db, { name: 'עו"ש', kind: 'bank', context: 'personal', isVisibleOnDashboard: true }, 1_842_015, '2026-06-01');
+    expect(await ensureNetWorthSnapshots(db, '2026-09-30')).toBe(1);
+    expect((await db.netWorthSnapshots.where('month').equals('2026-08').first())?.netWorth).toBe(1_842_015);
+    expect((await netWorthAt(db, '2026-05-31')).netWorth).toBe(0);
+  });
+
   it('first run: last month only; later: fills every missing month once', async () => {
     const { db, bank, broker } = await setup();
     const s = await saveSecurity(db, { symbol: 'X', name: 'X', exchange: 'NASDAQ', type: 'stock', priceUnit: 'ILS' });

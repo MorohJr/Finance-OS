@@ -103,6 +103,7 @@ body {
   font-variant-numeric: tabular-nums;
   direction: ltr;
   unicode-bidi: isolate;
+  white-space: nowrap;
 }
 
 .pb-safe {

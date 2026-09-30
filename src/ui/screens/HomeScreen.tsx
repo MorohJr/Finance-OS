@@ -18,7 +18,7 @@ import { usePlatform, useSettings } from '../hooks';
 import { isBackupDue } from '../../calc/reminders';
 import { currentMonthIL, formatDisplayDate, todayIL } from '../../calc/dates';
 import { monthRange, summarizeFlows } from '../../calc/cashflow';
-import { computeNetWorth } from '../../calc/netWorth';
+import { computeNetWorth, netWorthChange } from '../../calc/netWorth';
 import { sortTransactions } from '../../calc/transactionFilter';
 import { isIos } from '../../services/platform';
 import { sumAgorot } from '../../calc/money';
@@ -94,6 +94,8 @@ export function HomeScreen() {
       }),
     [active, balances, cardTotals, loans, lendings, checks, portfolio, pension],
   );
+  // Change vs last month's snapshot (7.2 header); computed in calc, not here.
+  const nwChange = lastSnapshot ? netWorthChange(nw.netWorth, lastSnapshot.netWorth) : 0;
   const debtThisMonth = useMemo(() => (loans && spread ? monthlyDebt(loans.map((l) => l.status), spread.charges, currentMonthIL()) : 0), [loans, spread]);
   const today = todayIL();
   const budget = useBudget(currentMonthIL());
@@ -124,8 +126,7 @@ export function HomeScreen() {
         {!active.length && <p className="mt-1 text-sm text-on-brand-muted">{H.netWorthPending}</p>}
         {active.length > 0 && lastSnapshot && lastSnapshot.month < currentMonthIL() && (
           <p className="mt-1 text-sm text-on-brand-muted">
-            {H.changeFromLastMonth('')}
-            <Money agorot={nw.netWorth - lastSnapshot.netWorth} signed className="text-on-brand" />
+            <Money agorot={nwChange} signed className="text-on-brand" /> {H.changeFromLastMonth('').trim()}
           </p>
         )}
       </header>
