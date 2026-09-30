@@ -437,7 +437,7 @@ export function HomeScreen() {
                 const bal = balances.get(a.id) ?? 0;
                 return (
                   <Link key={a.id} to={`/accounts/${a.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-surface-2">
-                    <Monogram name={inst?.name ?? a.name} color={a.color ?? inst?.color} size={32} logoId={inst?.logoAttachmentId} />
+                    <Monogram name={inst?.name ?? a.name} color={a.color ?? inst?.color} size={32} logoId={a.logoAttachmentId ?? inst?.logoAttachmentId} />
                     <span className="flex-1 truncate">{a.name}</span>
                     <Money agorot={bal} tone={bal < 0 ? 'expense' : 'plain'} className="font-medium" />
                   </Link>

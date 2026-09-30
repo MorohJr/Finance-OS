@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Field, MoneyInput, Segmented, Toggle, dangerBtn, inputCls, primaryBtn, secondaryBtn } from '../components/Form';
 import { useInstitutions } from '../data';
+import { LogoPicker } from '../components/LogoPicker';
 import { db } from '../../db/db';
 import type { Account } from '../../domain/schemas';
 import { createAccount, deleteAccount, openingBalanceOf, setAccountStatus, setOpeningBalance, updateAccount, type AccountInput } from '../../services/accounts';
@@ -39,6 +40,7 @@ export function AccountFormScreen() {
   const [overdraft, setOverdraft] = useState('');
   const [overdraftRate, setOverdraftRate] = useState('');
   const [visible, setVisible] = useState(true);
+  const [logo, setLogo] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionError, setActionError] = useState('');
 
@@ -55,6 +57,7 @@ export function AccountFormScreen() {
       setOverdraft(agorotToInput(a.overdraftLimit));
       setOverdraftRate(bpToInput(a.overdraftRatePct));
       setVisible(a.isVisibleOnDashboard);
+      setLogo(a.logoAttachmentId);
       const ob = await openingBalanceOf(db, id);
       if (ob) {
         setOpening(agorotToInput(ob.amount));
@@ -64,6 +67,7 @@ export function AccountFormScreen() {
     })();
   }, [id, navigate]);
 
+  const institution = (institutions ?? []).find((i) => i.id === institutionId);
   const instOptions = (institutions ?? []).filter((i) => INSTITUTION_KINDS[kind].includes(i.kind));
 
   async function onSubmit(e: FormEvent) {
@@ -87,6 +91,10 @@ export function AccountFormScreen() {
       overdraftLimit: kind === 'bank' ? (overdraftAgorot ?? undefined) : undefined,
       overdraftRatePct: kind === 'bank' ? (rateBp ?? undefined) : undefined,
       isVisibleOnDashboard: visible,
+      logoAttachmentId: logo,
+      // Keep fields this form doesn't edit.
+      color: existing?.color,
+      icon: existing?.icon,
     };
     if (existing) {
       await updateAccount(db, existing.id, input);
@@ -156,6 +164,8 @@ export function AccountFormScreen() {
             )}
           </Field>
         )}
+
+        <LogoPicker name={name || institution?.name || ''} color={existing?.color ?? institution?.color} value={logo} onChange={setLogo} fallbackLogoId={institution?.logoAttachmentId} hint={he.institutions.ownLogoHint} />
 
         <Segmented
           label={he.txForm.context}

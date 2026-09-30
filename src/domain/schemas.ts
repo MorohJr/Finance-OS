@@ -62,6 +62,8 @@ export const Account = z.object({
   status: ActiveStatus,
   color: z.string().optional(),
   icon: z.string().optional(),
+  /** User's own image for this account; overrides the institution logo (owner request 01/10/2026). */
+  logoAttachmentId: optionalId,
   sortOrder: z.number().optional(),
 });
 
@@ -85,6 +87,8 @@ export const Card = z
     creditLimit: NonNegativeAgorot.optional(),
     context: Context,
     status: ActiveStatus,
+    /** User's own image for this card; overrides the issuer logo. */
+    logoAttachmentId: optionalId,
   })
   .refine((c) => c.kind === 'credit' || c.creditLimit === undefined, {
     message: 'מסגרת אשראי רק לכרטיס credit',

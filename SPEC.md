@@ -138,6 +138,7 @@ src/
 | isVisibleOnDashboard | bool | ברירת מחדל true |
 | status ✱ | enum | `active`, `closed`. סגירה מותרת רק ביתרה 0 |
 | color, icon | string | |
+| logoAttachmentId? | id → Attachment | תמונה משלך. גוברת על הלוגו של המוסד (בקשת בעלים 01/10/2026) |
 | sortOrder | number | |
 
 **מחושב:** `balance`, `incomeThisMonth`, `expenseThisMonth`, `availableWithOverdraft`, `isOverdrawn`.
@@ -154,6 +155,7 @@ src/
 | chargeDay ✱ | 1..28 | יום החיוב בחודש (נפוץ: 2, 10, 15) |
 | cycleCutoffDay | 1..28 או null | יום סגירת המחזור. null = חודש קלנדרי (10.2) |
 | creditLimit | agorot | רק ל-`credit` |
+| logoAttachmentId? | id → Attachment | תמונה משלך. גוברת על הלוגו של המנפיק |
 | context ✱ | enum | |
 | status ✱ | enum | `active`, `closed` |
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Field, MoneyInput, Segmented, Toggle, dangerBtn, inputCls, primaryBtn, secondaryBtn } from '../components/Form';
 import { useAccounts, useInstitutions } from '../data';
+import { LogoPicker } from '../components/LogoPicker';
 import { db } from '../../db/db';
 import type { Card } from '../../domain/schemas';
 import { createCard, deleteCard, setCardStatus, updateCard, type CardInput } from '../../services/cards';
@@ -30,6 +31,7 @@ export function CardFormScreen() {
   const [cutoff, setCutoff] = useState(20);
   const [limit, setLimit] = useState('');
   const [context, setContext] = useState<Card['context']>('personal');
+  const [logo, setLogo] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [actionError, setActionError] = useState('');
 
@@ -49,6 +51,7 @@ export function CardFormScreen() {
       if (c.cycleCutoffDay !== null) setCutoff(c.cycleCutoffDay);
       setLimit(agorotToInput(c.creditLimit));
       setContext(c.context);
+      setLogo(c.logoAttachmentId);
       setLoaded(true);
     })();
   }, [id, navigate]);
@@ -56,6 +59,7 @@ export function CardFormScreen() {
   const banks = (accounts ?? []).filter((a) => a.status === 'active' && (a.kind === 'bank' || a.kind === 'platform' || a.kind === 'prepaid'));
   const effectiveBilling = billingAccountId || banks[0]?.id || '';
   const effectiveIssuer = issuerId || issuers[0]?.id || '';
+  const issuer = issuers.find((i) => i.id === effectiveIssuer);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -77,6 +81,7 @@ export function CardFormScreen() {
       cycleCutoffDay: calendar ? null : cutoff,
       creditLimit: kind === 'credit' ? (limitAgorot ?? undefined) : undefined,
       context,
+      logoAttachmentId: logo,
     };
     const saved = existing ? await updateCard(db, existing.id, input) : await createCard(db, input);
     navigate(`/cards/${saved.id}`, { replace: true });
@@ -114,6 +119,7 @@ export function CardFormScreen() {
             </select>
           )}
         </Field>
+        <LogoPicker name={issuer?.name ?? name} color={issuer?.color} value={logo} onChange={setLogo} fallbackLogoId={issuer?.logoAttachmentId} hint={he.institutions.ownLogoHint} />
         <Field label={C.last4} error={errors.last4} hint={C.last4Hint}>
           {(p) => (
             <input {...p} inputMode="numeric" maxLength={4} dir="ltr" autoComplete="off" className={`${inputCls} num text-start`} value={last4} onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} />

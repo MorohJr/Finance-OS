@@ -50,7 +50,7 @@ export function AccountsScreen() {
 
   const row = (a: Account) => {
     const inst = a.institutionId ? institutions.get(a.institutionId) : undefined;
-    return <AccountRow key={a.id} a={a} balance={balances.get(a.id) ?? 0} color={inst?.color} institution={inst?.name} logoId={inst?.logoAttachmentId} />;
+    return <AccountRow key={a.id} a={a} balance={balances.get(a.id) ?? 0} color={inst?.color} institution={inst?.name} logoId={a.logoAttachmentId ?? inst?.logoAttachmentId} />;
   };
 
   return (

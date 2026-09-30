@@ -2,13 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BottomSheet } from '../components/BottomSheet';
 import { Monogram } from '../components/Monogram';
+import { LogoPicker } from '../components/LogoPicker';
 import { Icon } from '../components/Icon';
-import { Field, dangerBtn, inputCls, primaryBtn, secondaryBtn } from '../components/Form';
+import { Field, dangerBtn, inputCls, primaryBtn } from '../components/Form';
 import { useInstitutions } from '../data';
 import { db } from '../../db/db';
 import { Institution as InstitutionSchema, type Institution } from '../../domain/schemas';
 import { deleteInstitution, saveInstitution } from '../../services/institutions';
-import { saveAttachment } from '../../services/attachments';
 import { he } from '../strings.he';
 
 const I = he.institutions;
@@ -25,22 +25,7 @@ function InstitutionForm({ draft, onDone }: { draft: Draft; onDone: () => void }
   }
   return (
     <form onSubmit={onSubmit} className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto" noValidate>
-      <div className="flex items-center gap-3">
-        <Monogram name={d.name || '?'} color={d.color} size={56} logoId={d.logoAttachmentId} />
-        <label className={`${secondaryBtn} cursor-pointer`}>
-          {I.pickLogo}
-          <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (f) setD({ ...d, logoAttachmentId: await saveAttachment(db, f) });
-          }} />
-        </label>
-        {d.logoAttachmentId && (
-          <button type="button" className="text-sm text-muted" onClick={() => setD({ ...d, logoAttachmentId: undefined })}>
-            {I.removeLogo}
-          </button>
-        )}
-      </div>
-      <p className="-mt-2 text-xs text-muted">{I.logoHint}</p>
+      <LogoPicker name={d.name} color={d.color} value={d.logoAttachmentId} onChange={(logoAttachmentId) => setD({ ...d, logoAttachmentId })} hint={I.logoHint} />
       <Field label={I.name} error={error}>{(p) => <input {...p} className={inputCls} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} />}</Field>
       <Field label={I.kind}>
         {(p) => (
