@@ -67,7 +67,7 @@ function incomeLine(t: Tx): IncomeLine {
 
 export function businessOverview(
   business: Pick<Business, 'vatStatus' | 'vatReportingPeriod' | 'isMicroBusiness' | 'openDate'>,
-  tax: Pick<TaxSettings, 'incomeTaxRateBp' | 'nationalInsuranceRateBp' | 'vatDueDay' | 'paturCeilingAgorot' | 'pensionAvgWageAgorot' | 'pensionLowRateBp' | 'pensionHighRateBp'>,
+  tax: Pick<TaxSettings, 'incomeTaxRateBp' | 'nationalInsuranceRateBp' | 'nationalInsuranceMode' | 'nationalInsuranceMonthlyAgorot' | 'vatDueDay' | 'paturCeilingAgorot' | 'pensionAvgWageAgorot' | 'pensionLowRateBp' | 'pensionHighRateBp'>,
   txs: readonly Tx[],
   classes: ReadonlyMap<string, Pick<ExpenseClass, 'incomeTaxRecognizedPct' | 'vatRecognizedPct'>>,
   selfPensionDepositsYtd: number,
@@ -101,7 +101,15 @@ export function businessOverview(
   const profitYtd = revenueYtd - recognized;
   const taxable = Math.max(0, profitYtd);
   const estimatedIncomeTax = tax.incomeTaxRateBp === null ? null : mulBp(taxable, tax.incomeTaxRateBp);
-  const estimatedNi = tax.nationalInsuranceRateBp === null ? null : mulBp(taxable, tax.nationalInsuranceRateBp);
+  // NI: either the user's rate on the profit, or a fixed monthly advance × months so far.
+  const estimatedNi =
+    tax.nationalInsuranceMode === 'fixed_monthly'
+      ? tax.nationalInsuranceMonthlyAgorot === undefined
+        ? null
+        : tax.nationalInsuranceMonthlyAgorot * monthsElapsed
+      : tax.nationalInsuranceRateBp === null
+        ? null
+        : mulBp(taxable, tax.nationalInsuranceRateBp);
   const reservedYtd = sumAgorot(ytdIncomes.filter((i) => i.cleared).map((i) => i.reserve));
   const paidYtd = sumAgorot(txs.filter((t) => !t.deletedAt && t.status === 'cleared' && t.kind === 'expense' && advanceCats.has(t.categoryId ?? '') && inYear(t.date)).map((t) => t.amountAgorot));
   const gap = estimatedIncomeTax === null || estimatedNi === null ? null : estimatedIncomeTax + estimatedNi - paidYtd;

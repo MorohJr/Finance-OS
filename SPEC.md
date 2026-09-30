@@ -327,6 +327,23 @@ src/
 
 **מחושב:** `totalDue` = קרן × (1 + ריבית), `repaid` = סכום `lending_repayment` מקושרים, `remaining`, `progressPct`, `isPaidOff`. **אין** שדה "שולם עד כה" ידני.
 
+### 6.11א Debt (חוב שאינו הלוואה) — נוסף 01/10/2026 לבקשת הבעלים
+
+חוב בלי מנגנון ריבית של הלוואה: חשבון חשמל שלא שולם, קנס, חוב לרשויות המס, תיק בהוצאה לפועל, הסדר תשלומים.
+
+| שדה | סוג | הערות |
+| --- | --- | --- |
+| creditor ✱ | string | למי |
+| kind ✱ | enum | `utility`, `fine`, `tax_authority`, `collection`, `legal_settlement`, `personal`, `other` |
+| originalAmountAgorot ✱ | int | |
+| date ✱ | date | |
+| status ✱ | enum | `open`, `arrangement` (הסדר), `legal` (טיפול משפטי), `settled` |
+| charges | array | תוספות: `{ date, kind: fine/interest/fee/legal/other, amountAgorot, note? }` |
+| monthlyPaymentAgorot, paymentDay, planStartDate | | הסדר של סכום קבוע כל חודש |
+| accountId, categoryId, caseNumber, context ✱, note | | |
+
+**מחושב:** יתרה = סכום מקורי + תוספות − תשלומים מקושרים (`links.debtId`, מסוג `expense` בקטגוריית החוב). פיגור בהסדר (אחרי 5 ימי חסד), התשלום הבא, מספר התשלומים שנשארו ותאריך סיום. היתרה היא התחייבות בשווי הנטו; התשלום החודשי נכלל במדד החוב ובתחזית.
+
 ### 6.12 Check (צ'ק)
 
 | שדה | סוג | הערות |
@@ -457,7 +474,8 @@ src/
 | --- | --- | --- |
 | vatRateBp ✱ | 1800 (18%) | ניתן לעריכה |
 | incomeTaxRateBp ✱ | ריק | אחוז מס הכנסה על הרווח העסקי. **המשתמש מזין** (למשל לפי רו"ח או לפי המדרגה השולית שלו). חובה לפני שימוש במחשבון |
-| nationalInsuranceRateBp ✱ | ריק | אחוז ביטוח לאומי + מס בריאות על הרווח העסקי. **המשתמש מזין**. חובה לפני שימוש במחשבון |
+| nationalInsuranceRateBp ✱ | ריק | אחוז ביטוח לאומי + מס בריאות על הרווח העסקי. **המשתמש מזין**. חובה לפני שימוש במחשבון, במצב `percent` |
+| nationalInsuranceMode | `fixed_monthly` (למשתמש חדש) | נוסף 01/10/2026: `fixed_monthly` = מקדמה חודשית קבועה (`nationalInsuranceMonthlyAgorot`). במצב הזה המחשבון לא מפריש ב"ל מכל הכנסה, והב"ל המשוער מתחילת השנה = סכום חודשי × חודשים. `percent` = כמו קודם |
 | reserveBasis ✱ | `net_income` | על מה מחשבים את האחוזים: `net_income` (כל ההכנסה לפני מע"מ) או `profit_ratio` (לפי יחס רווח מתחילת השנה, 11.2) |
 | capitalGainsRateBp | 2500 (25%) | למניות |
 | paturCeilingAgorot | ₪122,833 | תקרת עוסק פטור 2026 |
@@ -535,7 +553,7 @@ src/
 - **לוגואים:** ברירת מחדל: מונוגרמה צבעונית לכל מוסד (אות + צבע המותג). המשתמש יכול להעלות תמונת לוגו. לא לארוז לוגואים של מותגים באפליקציה.
 - **נגישות:** יעד מגע מינימלי 44×44, ניגודיות AA, תמיכה בהגדלת טקסט, תוויות ARIA בעברית.
 - **תנועה:** אנימציות עדינות, עם כיבוד `prefers-reduced-motion`.
-- **iPhone:** safe-area insets, מקלדת מספרית (`inputmode="decimal"`) בשדות סכום, גיליון תחתון להוספה.
+- **iPhone:** safe-area insets, מקלדת מספרית (`inputmode="decimal"`) בשדות סכום, גיליון תחתון להוספה. שדות סכום מוסיפים פסיק אלפים תוך כדי הקלדה.
 
 ## 9. ייבוא קבצים
 

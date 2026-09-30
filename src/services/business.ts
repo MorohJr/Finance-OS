@@ -36,8 +36,9 @@ export async function saveTaxSettings(db: FinanceDB, input: TaxInput, today: str
   return row;
 }
 
-export function ratesReady(t: Pick<TaxT, 'incomeTaxRateBp' | 'nationalInsuranceRateBp'> | undefined): boolean {
-  return !!t && t.incomeTaxRateBp !== null && t.nationalInsuranceRateBp !== null;
+export function ratesReady(t: Pick<TaxT, 'incomeTaxRateBp' | 'nationalInsuranceRateBp' | 'nationalInsuranceMode' | 'nationalInsuranceMonthlyAgorot'> | undefined): boolean {
+  if (!t || t.incomeTaxRateBp === null) return false;
+  return t.nationalInsuranceMode === 'fixed_monthly' ? t.nationalInsuranceMonthlyAgorot !== undefined : t.nationalInsuranceRateBp !== null;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +88,7 @@ export async function previewIncome(db: FinanceDB, amountAgorot: number, mode: A
   const [business, tax] = [await getBusiness(db), await taxSettingsAt(db, date)];
   if (!business || !tax || !ratesReady(tax)) return undefined;
   const v = incomeVat(amountAgorot, mode, business.vatStatus, tax.vatRateBp);
-  const r = setAside(v, { incomeTaxRateBp: tax.incomeTaxRateBp!, nationalInsuranceRateBp: tax.nationalInsuranceRateBp!, reserveBasis: tax.reserveBasis }, await ytdProfit(db, date));
+  const r = setAside(v, { incomeTaxRateBp: tax.incomeTaxRateBp!, nationalInsuranceRateBp: tax.nationalInsuranceRateBp ?? 0, nationalInsuranceMode: tax.nationalInsuranceMode, reserveBasis: tax.reserveBasis }, await ytdProfit(db, date));
   return { ...r, ...v };
 }
 
@@ -115,7 +116,7 @@ export async function saveBusinessIncome(db: FinanceDB, input: IncomeInput, id?:
       niReserveAgorot: preview.niReserve,
       vatRateBp: business.vatStatus === 'licensed' ? tax.vatRateBp : 0,
       incomeTaxRateBp: tax.incomeTaxRateBp!,
-      nationalInsuranceRateBp: tax.nationalInsuranceRateBp!,
+      nationalInsuranceRateBp: tax.nationalInsuranceMode === 'fixed_monthly' ? undefined : (tax.nationalInsuranceRateBp ?? undefined),
     },
   };
   const tx = id ? await updateTransaction(db, id, txInput) : await createTransaction(db, txInput);

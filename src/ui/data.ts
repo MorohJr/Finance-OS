@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Business, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, TaxSettings, Transaction, WishItem } from '../domain/schemas';
+import type { Account, Business, Card, Debt, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, TaxSettings, Transaction, WishItem } from '../domain/schemas';
 import { loadBusinessOverview, taxSettingsAt } from '../services/business';
 import { TAX_DEFAULTS_2026 } from '../db/seed.data';
 import type { BusinessOverview } from '../calc/business/overview';
@@ -10,6 +10,7 @@ import { fundViews, type FundView } from '../calc/pension';
 import { wishStatus, type WishStatus } from '../calc/wish';
 import { lendingStatus, loanInterestByTx, loanStatus, type LendingStatus, type LoanStatus } from '../calc/loans';
 import { addDays, todayIL } from '../calc/dates';
+import { debtSchedule, debtStatus, type DebtStatus } from '../calc/debts';
 import { expectedSalaryEvents } from '../calc/salary';
 import { SETTINGS_ID } from '../domain/schemas';
 import { computeBudget, type BudgetSummary } from '../calc/budget';
@@ -141,6 +142,14 @@ export function useForecast(accountId: string | undefined, today: string, days: 
     });
     const [employers, payslips] = await Promise.all([db.employers.toArray(), db.payslips.toArray()]);
     extraEvents.push(...expectedSalaryEvents(employers, payslips, accountId, today, addDays(today, days)));
+    // Debt arrangements paid from this account.
+    const debts = await db.debts.filter((d) => !d.deletedAt && d.accountId === accountId && !!d.monthlyPaymentAgorot).toArray();
+    const debtPayments = await db.transactions.filter((t) => !!t.links?.debtId).toArray();
+    for (const d of debts) {
+      for (const p of debtSchedule(d, debtStatus(d, debtPayments, today), addDays(today, days))) {
+        extraEvents.push({ date: p.date, amountAgorot: -p.amount, kind: 'loan', label: d.creditor, refId: d.id });
+      }
+    }
     return computeForecast({
       extraEvents,
       accountId,
@@ -248,4 +257,13 @@ export function useTaxSettings(date: string = todayIL()): TaxSettings | undefine
 
 export function useBusinessOverview(): BusinessOverview | null | undefined {
   return useLiveQuery(async () => (await loadBusinessOverview(db)) ?? null, []);
+}
+
+export function useDebts(): { debt: Debt; status: DebtStatus }[] | undefined {
+  return useLiveQuery(async () => {
+    const debts = await db.debts.filter((d) => !d.deletedAt).toArray();
+    const payments = await db.transactions.filter((t) => !!t.links?.debtId).toArray();
+    const today = todayIL();
+    return debts.map((debt) => ({ debt, status: debtStatus(debt, payments, today) }));
+  }, []);
 }

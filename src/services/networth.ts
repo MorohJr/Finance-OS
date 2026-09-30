@@ -6,6 +6,7 @@ import { computeNetWorth, type NetWorth } from '../calc/netWorth';
 import { lendingStatus, loanStatus } from '../calc/loans';
 import { portfolio } from '../calc/investments';
 import { pensionTotals } from '../calc/pension';
+import { debtStatus } from '../calc/debts';
 import { monthRange, nextMonth, previousMonth } from '../calc/cashflow';
 import { currentMonthIL, todayIL } from '../calc/dates';
 import { sumAgorot } from '../calc/money';
@@ -19,7 +20,7 @@ import { TAX_DEFAULTS_2026 } from '../db/seed.data';
  * their due date, prices and pension balances are the latest known on that date.
  */
 export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth> {
-  const [accounts, txs, cards, plans, statements, loans, lendings, checks, securities, trades, prices, fx, funds, pensionSnaps, settings] = await Promise.all([
+  const [accounts, txs, cards, plans, statements, loans, lendings, checks, debts, securities, trades, prices, fx, funds, pensionSnaps, settings] = await Promise.all([
     // Not filtered by createdAt: that's when the account was entered in the app, not when it existed.
     // Balances as of the date come from the transactions (opening balance included).
     db.accounts.filter((a) => !a.deletedAt).toArray(),
@@ -30,6 +31,7 @@ export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth>
     db.loans.filter((l) => !l.deletedAt && l.startDate <= asOf).toArray(),
     db.lendings.filter((l) => !l.deletedAt && l.date <= asOf).toArray(),
     db.checks.filter((c) => !c.deletedAt).toArray(),
+    db.debts.filter((d) => !d.deletedAt && d.date <= asOf).toArray(),
     db.securities.toArray(),
     db.investmentTrades.filter((t) => !t.deletedAt).toArray(),
     db.pricePoints.toArray(),
@@ -62,6 +64,7 @@ export async function netWorthAt(db: FinanceDB, asOf: string): Promise<NetWorth>
   const pension = pensionTotals(funds, pensionSnaps, asOf);
 
   return computeNetWorth({
+    debtsRemaining: sumAgorot(debts.map((d) => debtStatus({ ...d, charges: d.charges.filter((c) => c.date <= asOf) }, until, asOf).remaining)),
     accountBalances: accounts.map((a) => accountBalance(a.id, until)),
     securitiesMarketValue: pf.totalValue,
     pensionLiquid: pension.liquid,

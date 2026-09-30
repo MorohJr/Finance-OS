@@ -128,6 +128,8 @@ export const TransactionLinks = z.object({
   pensionFundId: optionalId,
   // DECISION (9.1 step 5): the import batch that created it, so a whole import can be undone.
   importBatchId: optionalId,
+  // Owner request 01/10/2026: payment toward a non-loan debt.
+  debtId: optionalId,
 });
 
 export const BusinessExpenseDetails = z.object({
@@ -385,6 +387,38 @@ export const Lending = z.object({
   note: z.string().optional(),
 });
 
+/**
+ * Debt (owner request 01/10/2026): money owed that isn't a loan — an unpaid electricity bill,
+ * a fine, a tax authority debt, a case in collection, a settlement with a fixed monthly payment.
+ * The balance is derived: original amount + added charges − linked payments (never edited directly).
+ */
+export const DebtCharge = z.object({
+  id: Id,
+  date: IsoDate,
+  kind: z.enum(['fine', 'interest', 'fee', 'legal', 'other']),
+  amountAgorot: PositiveAgorot,
+  note: z.string().optional(),
+});
+
+export const Debt = z.object({
+  ...base,
+  creditor: z.string().min(1),
+  kind: z.enum(['utility', 'fine', 'tax_authority', 'collection', 'legal_settlement', 'personal', 'other']),
+  originalAmountAgorot: PositiveAgorot,
+  date: IsoDate,
+  status: z.enum(['open', 'arrangement', 'legal', 'settled']),
+  charges: z.array(DebtCharge).default([]),
+  /** Fixed monthly payment of an arrangement (הסדר). */
+  monthlyPaymentAgorot: PositiveAgorot.optional(),
+  paymentDay: z.int().min(1).max(31).optional(),
+  planStartDate: IsoDate.optional(),
+  accountId: optionalId,
+  categoryId: optionalId,
+  caseNumber: z.string().optional(),
+  context: Context,
+  note: z.string().optional(),
+});
+
 export const Check = z.object({
   ...base,
   direction: z.enum(['issued', 'received']),
@@ -572,6 +606,10 @@ export const TaxSettings = z.object({
   // User-entered. null until the user fills them in (iron rule 4: no tax numbers in code).
   incomeTaxRateBp: Bp.nullable(),
   nationalInsuranceRateBp: Bp.nullable(),
+  // Owner request 01/10/2026: NI for the self-employed is often a fixed monthly advance, not a
+  // percentage. Absent = 'percent' (rows saved before this change).
+  nationalInsuranceMode: z.enum(['percent', 'fixed_monthly']).optional(),
+  nationalInsuranceMonthlyAgorot: NonNegativeAgorot.optional(),
   reserveBasis: z.enum(['net_income', 'profit_ratio']),
   capitalGainsRateBp: Bp,
   paturCeilingAgorot: NonNegativeAgorot,
@@ -688,6 +726,8 @@ export type Recurring = z.infer<typeof Recurring>;
 export type WishItem = z.infer<typeof WishItem>;
 export type Loan = z.infer<typeof Loan>;
 export type Lending = z.infer<typeof Lending>;
+export type Debt = z.infer<typeof Debt>;
+export type DebtCharge = z.infer<typeof DebtCharge>;
 export type Check = z.infer<typeof Check>;
 export type NetWorthSnapshot = z.infer<typeof NetWorthSnapshot>;
 export type Sector = z.infer<typeof Sector>;

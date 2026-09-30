@@ -26,6 +26,7 @@ test('business: rates first, calculator matches golden 14.4/14.5, move to tax re
   await page.getByRole('link', { name: 'הכנסה עסקית' }).click();
   await expect(page.getByText('לפני שימוש במחשבון, הזן את אחוז מס ההכנסה')).toBeVisible();
   await page.getByLabel('מס הכנסה על הרווח העסקי (%)').fill('20');
+  await page.getByRole('radio', { name: 'אחוז מהרווח' }).click();
   await page.getByLabel('ביטוח לאומי ומס בריאות (%)').fill('16');
   await page.getByRole('button', { name: 'שמירה' }).click();
 

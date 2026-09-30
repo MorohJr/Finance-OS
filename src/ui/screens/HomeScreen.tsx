@@ -6,7 +6,7 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings, useDebts } from '../data';
 import { formatBp } from '../../calc/money';
 import { monthlyDebt } from '../../calc/loans';
 import { ForecastEvents } from '../components/ForecastEvents';
@@ -72,6 +72,7 @@ export function HomeScreen() {
   const checks = useChecks();
   const flowOptions = useFlowOptions();
   const wishes = useWishes();
+  const owed = useDebts();
   const portfolio = usePortfolio();
   const pension = usePension();
   const lastSnapshot = useLastSnapshot();
@@ -91,12 +92,16 @@ export function HomeScreen() {
         securitiesMarketValue: portfolio?.totalValue ?? 0,
         pensionLiquid: sumAgorot((pension ?? []).filter((f) => f.fund.isLiquid).map((f) => f.balance)),
         pensionIlliquid: sumAgorot((pension ?? []).filter((f) => !f.fund.isLiquid).map((f) => f.balance)),
+        debtsRemaining: sumAgorot((owed ?? []).map((d) => d.status.remaining)),
       }),
-    [active, balances, cardTotals, loans, lendings, checks, portfolio, pension],
+    [active, balances, cardTotals, loans, lendings, checks, portfolio, pension, owed],
   );
   // Change vs last month's snapshot (7.2 header); computed in calc, not here.
   const nwChange = lastSnapshot ? netWorthChange(nw.netWorth, lastSnapshot.netWorth) : 0;
-  const debtThisMonth = useMemo(() => (loans && spread ? monthlyDebt(loans.map((l) => l.status), spread.charges, currentMonthIL()) : 0), [loans, spread]);
+  const debtThisMonth = useMemo(
+    () => (loans && spread ? monthlyDebt(loans.map((l) => l.status), spread.charges, currentMonthIL()) : 0) + sumAgorot((owed ?? []).map((d) => d.status.nextPayment?.amount ?? 0)),
+    [loans, spread, owed],
+  );
   const today = todayIL();
   const budget = useBudget(currentMonthIL());
   const pending = usePending();
@@ -178,7 +183,7 @@ export function HomeScreen() {
             {txs?.length ? <Money agorot={month.net} tone={month.net >= 0 ? 'income' : 'expense'} /> : undefined}
           </Metric>
           <Metric label={H.debts} to="/debts">
-            {debtThisMonth > 0 || (loans ?? []).length ? (
+            {debtThisMonth > 0 || (loans ?? []).length || (owed ?? []).length ? (
               <>
                 <Money agorot={debtThisMonth} />
                 <p className="text-xs font-normal text-muted">{H.debtsHint}</p>

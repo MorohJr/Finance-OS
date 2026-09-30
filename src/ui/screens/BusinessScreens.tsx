@@ -197,7 +197,15 @@ export function BusinessScreen() {
                   <Money agorot={o.profitYtd} />
                 </Row>
                 <Row label={`${B.lines.incomeTax}${tax?.incomeTaxRateBp != null ? ` (${formatBp(tax.incomeTaxRateBp)})` : ''}`}>{o.estimatedIncomeTax === null ? <span className="text-warning">{B.rateMissing}</span> : <Money agorot={o.estimatedIncomeTax} />}</Row>
-                <Row label={`${B.lines.ni}${tax?.nationalInsuranceRateBp != null ? ` (${formatBp(tax.nationalInsuranceRateBp)})` : ''}`}>{o.estimatedNi === null ? <span className="text-warning">{B.rateMissing}</span> : <Money agorot={o.estimatedNi} />}</Row>
+                <Row
+                  label={`${B.lines.ni}${
+                    tax?.nationalInsuranceMode === 'fixed_monthly' && tax.nationalInsuranceMonthlyAgorot !== undefined
+                      ? ` (${B.niFixedLine(formatAgorot(tax.nationalInsuranceMonthlyAgorot))})`
+                      : tax?.nationalInsuranceRateBp != null
+                        ? ` (${formatBp(tax.nationalInsuranceRateBp)})`
+                        : ''
+                  }`}
+                >{o.estimatedNi === null ? <span className="text-warning">{B.rateMissing}</span> : <Money agorot={o.estimatedNi} />}</Row>
                 <Row label={B.lines.reserved}>
                   <Money agorot={o.reservedYtd} />
                 </Row>
@@ -453,9 +461,13 @@ export function IncomeCalculatorScreen() {
               <Row label={`${L.incomeTax} (${formatBp(tax.incomeTaxRateBp!)})`}>
                 <Money agorot={shownPreview.incomeTaxReserve} exact />
               </Row>
-              <Row label={`${L.ni} (${formatBp(tax.nationalInsuranceRateBp!)})`}>
-                <Money agorot={shownPreview.niReserve} exact />
-              </Row>
+              {tax.nationalInsuranceMode === 'fixed_monthly' ? (
+                <Row label={B.niFixed(formatAgorot(tax.nationalInsuranceMonthlyAgorot ?? 0))}>—</Row>
+              ) : (
+                <Row label={`${L.ni} (${formatBp(tax.nationalInsuranceRateBp!)})`}>
+                  <Money agorot={shownPreview.niReserve} exact />
+                </Row>
+              )}
               {shownPreview.vatReserve > 0 && (
                 <Row label={L.vatReserve}>
                   <Money agorot={shownPreview.vatReserve} exact />

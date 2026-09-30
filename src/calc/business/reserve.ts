@@ -13,6 +13,11 @@ export interface ReserveRates {
   incomeTaxRateBp: number;
   nationalInsuranceRateBp: number;
   reserveBasis: ReserveBasis;
+  /**
+   * 'fixed_monthly': NI is a fixed monthly advance, not a share of each income, so nothing is
+   * reserved for it per income (it's tracked monthly in the business overview).
+   */
+  nationalInsuranceMode?: 'percent' | 'fixed_monthly';
 }
 
 export interface ReserveBreakdown {
@@ -41,7 +46,7 @@ export function setAside(v: VatBreakdown, rates: ReserveRates, ytd: { profit: nu
   const clampedProfit = Math.min(ytd.revenue, Math.max(0, ytd.profit));
   const base = rates.reserveBasis === 'net_income' ? v.net : exactRatio ? divRoundHalfUp(v.net * clampedProfit, ytd.revenue) : v.net;
   const incomeTaxReserve = mulBp(base, rates.incomeTaxRateBp);
-  const niReserve = mulBp(base, rates.nationalInsuranceRateBp);
+  const niReserve = rates.nationalInsuranceMode === 'fixed_monthly' ? 0 : mulBp(base, rates.nationalInsuranceRateBp);
   const total = v.vat + incomeTaxReserve + niReserve;
   return { base, profitRatioBp: rates.reserveBasis === 'profit_ratio' ? ratioBp : BP_SCALE, incomeTaxReserve, niReserve, vatReserve: v.vat, setAside: total, leftForYou: v.total - total };
 }
@@ -50,7 +55,7 @@ export function setAside(v: VatBreakdown, rates: ReserveRates, ytd: { profit: nu
 export function setAsideWithRatio(v: VatBreakdown, rates: ReserveRates, ratioBp: number): ReserveBreakdown {
   const base = rates.reserveBasis === 'net_income' ? v.net : mulBp(v.net, Math.min(BP_SCALE, Math.max(0, ratioBp)));
   const incomeTaxReserve = mulBp(base, rates.incomeTaxRateBp);
-  const niReserve = mulBp(base, rates.nationalInsuranceRateBp);
+  const niReserve = rates.nationalInsuranceMode === 'fixed_monthly' ? 0 : mulBp(base, rates.nationalInsuranceRateBp);
   const total = v.vat + incomeTaxReserve + niReserve;
   return { base, profitRatioBp: ratioBp, incomeTaxReserve, niReserve, vatReserve: v.vat, setAside: total, leftForYou: v.total - total };
 }

@@ -51,6 +51,8 @@ const TaxSettingsScreen = named(() => import('./screens/TaxSettingsScreen'), 'Ta
 const SettingsScreen = named(() => import('./screens/SettingsScreen'), 'SettingsScreen');
 const ImportScreen = named(() => import('./screens/ImportScreen'), 'ImportScreen');
 const ReportsScreen = named(() => import('./screens/ReportsScreen'), 'ReportsScreen');
+const DebtFormScreen = named(() => import('./screens/OwedScreens'), 'DebtFormScreen');
+const DebtDetailScreen = named(() => import('./screens/OwedScreens'), 'DebtDetailScreen');
 const InstitutionsScreen = named(() => import('./screens/InstitutionsScreen'), 'InstitutionsScreen');
 
 
@@ -122,6 +124,9 @@ export function App() {
             <Route path="business/income/:id" element={<Fresh>{(k) => <IncomeCalculatorScreen key={k} />}</Fresh>} />
             <Route path="business/expense/:id" element={<Fresh>{(k) => <BusinessExpenseScreen key={k} />}</Fresh>} />
             <Route path="tax" element={<TaxSettingsScreen />} />
+            <Route path="debts/owed/new" element={<Fresh>{(k) => <DebtFormScreen key={k} />}</Fresh>} />
+            <Route path="debts/owed/:id" element={<DebtDetailScreen />} />
+            <Route path="debts/owed/:id/edit" element={<Fresh>{(k) => <DebtFormScreen key={k} />}</Fresh>} />
             <Route path="checks" element={<ChecksScreen />} />
             <Route path="checks/new" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />
             <Route path="checks/:id" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />

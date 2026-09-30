@@ -1,4 +1,5 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { caretAfterFormat, formatAmountInput } from '../format';
 
 export const inputCls = 'min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-base text-text placeholder:text-muted/70 aria-[invalid=true]:border-expense';
 export const primaryBtn =
@@ -74,20 +75,41 @@ export function Toggle({ label, hint, checked, onChange }: { label: string; hint
   );
 }
 
-/** Amount input: text with decimal keypad (SPEC 8), ₪ prefix. Parsing happens on submit. */
+/**
+ * Amount input: decimal keypad (SPEC 8), ₪ prefix, thousands separators added while typing
+ * ("12500" → "12,500") with the caret kept in place. Parsing happens on submit.
+ */
 export function MoneyInput(props: { id: string; value: string; onChange: (v: string) => void; allowNegative?: boolean; 'aria-invalid'?: boolean; 'aria-describedby'?: string; autoFocus?: boolean }) {
   const { value, onChange, allowNegative, ...rest } = props;
+  const ref = useRef<HTMLInputElement>(null);
+  const caret = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (caret.current !== null && ref.current && document.activeElement === ref.current) {
+      ref.current.setSelectionRange(caret.current, caret.current);
+      caret.current = null;
+    }
+  });
+
   return (
     <div className="relative">
       <input
         {...rest}
+        ref={ref}
         type="text"
         inputMode={allowNegative ? 'text' : 'decimal'}
         autoComplete="off"
         dir="ltr"
         placeholder="0.00"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={formatAmountInput(value, allowNegative)}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const pos = e.target.selectionStart ?? raw.length;
+          const meaningful = raw.slice(0, pos).replace(/[^\d.]/g, '').length;
+          const formatted = formatAmountInput(raw, allowNegative);
+          caret.current = caretAfterFormat(formatted, meaningful);
+          onChange(formatted);
+        }}
         className={`${inputCls} num ps-9 text-start text-lg`}
       />
       <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted" dir="ltr">

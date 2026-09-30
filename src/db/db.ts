@@ -47,9 +47,12 @@ export const SCHEMA_V1 = {
   settings: 'id',
 } as const;
 
-export type TableName = keyof typeof SCHEMA_V1;
+/** v2 (01/10/2026): non-loan debts. Adds a table only; existing data is untouched. */
+export const SCHEMA_V2 = { ...SCHEMA_V1, debts: 'id, status, kind' } as const;
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export type TableName = keyof typeof SCHEMA_V2;
+
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export class FinanceDB extends Dexie {
   accounts!: EntityTable<D.Account, 'id'>;
@@ -65,6 +68,7 @@ export class FinanceDB extends Dexie {
   loans!: EntityTable<D.Loan, 'id'>;
   lendings!: EntityTable<D.Lending, 'id'>;
   checks!: EntityTable<D.Check, 'id'>;
+  debts!: EntityTable<D.Debt, 'id'>;
   netWorthSnapshots!: EntityTable<D.NetWorthSnapshot, 'id'>;
   sectors!: EntityTable<D.Sector, 'id'>;
   securities!: EntityTable<D.Security, 'id'>;
@@ -88,12 +92,14 @@ export class FinanceDB extends Dexie {
   constructor(name: string = DB_NAME) {
     super(name);
     this.version(1).stores(SCHEMA_V1);
+    // New table; no data to transform, so no upgrade function is needed.
+    this.version(2).stores(SCHEMA_V2);
     // Runs once, when the database is first created.
     this.on('populate', (tx) => seedDatabase(tx));
   }
 }
 
-export const TABLE_NAMES = Object.keys(SCHEMA_V1) as TableName[];
+export const TABLE_NAMES = Object.keys(SCHEMA_V2) as TableName[];
 
 /** Tables whose rows are the user's own data (used to decide if a backup reminder is relevant). */
 export const USER_DATA_TABLES: readonly TableName[] = [
@@ -105,6 +111,7 @@ export const USER_DATA_TABLES: readonly TableName[] = [
   'loans',
   'lendings',
   'checks',
+  'debts',
   'securities',
   'pensionFunds',
   'employers',

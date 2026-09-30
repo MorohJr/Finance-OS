@@ -47,3 +47,30 @@ export function bpToInput(bp: number | undefined): string {
   const frac = bp % 100;
   return `${Math.floor(bp / 100)}${frac ? `.${String(frac).padStart(2, '0').replace(/0$/, '')}` : ''}`;
 }
+
+/**
+ * Live formatting of an amount field: "1234567.5" → "1,234,567.5" while typing.
+ * Keeps at most 2 decimals and one leading minus (when allowed). Text only: parsing to agorot
+ * still happens once, on submit (parseAmountToAgorot accepts the commas).
+ */
+export function formatAmountInput(raw: string, allowNegative = false): string {
+  const negative = allowNegative && /^\s*[-−]/.test(raw);
+  const cleaned = raw.replace(/[^\d.]/g, '');
+  const dot = cleaned.indexOf('.');
+  const intDigits = (dot === -1 ? cleaned : cleaned.slice(0, dot)).replace(/^0+(?=\d)/, '');
+  const frac = dot === -1 ? null : cleaned.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+  const grouped = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const body = frac === null ? grouped : `${grouped || '0'}.${frac}`;
+  return `${negative ? '-' : ''}${body}`;
+}
+
+/** Where the caret belongs after formatting: after the same number of digits/dots as before. */
+export function caretAfterFormat(formatted: string, meaningfulBefore: number): number {
+  if (meaningfulBefore <= 0) return formatted.startsWith('-') ? 1 : 0;
+  let seen = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/[\d.]/.test(formatted[i]!)) seen++;
+    if (seen === meaningfulBefore) return i + 1;
+  }
+  return formatted.length;
+}

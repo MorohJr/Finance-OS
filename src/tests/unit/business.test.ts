@@ -109,3 +109,15 @@ describe('golden 14.8: mandatory pension (avg wage ₪13,769)', () => {
     expect(pensionObligation(-ils(1_000), 3, ils(13_769), 445, 1255, 0).monthly).toBe(0);
   });
 });
+
+describe('national insurance as a fixed monthly amount (owner request)', () => {
+  it('nothing is reserved per income for NI; the income tax reserve is unchanged', () => {
+    const v = incomeVat(ils(5000), 'excl_vat', 'licensed', VAT);
+    expect(setAside(v, { incomeTaxRateBp: 2000, nationalInsuranceRateBp: 0, nationalInsuranceMode: 'fixed_monthly', reserveBasis: 'net_income' })).toMatchObject({
+      incomeTaxReserve: ils(1000),
+      niReserve: 0,
+      setAside: ils(1900),
+      leftForYou: ils(4000),
+    });
+  });
+});

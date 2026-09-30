@@ -89,3 +89,18 @@ describe('business module (stage 8, golden 14.4–14.6 through services)', () =>
     expect(o.patur).toMatchObject({ turnoverYtd: 6_000_000, projected: 18_000_000, alerts: ['projected_over'] });
   });
 });
+
+describe('fixed monthly NI in the year-to-date summary', () => {
+  it('estimated NI = monthly amount × months so far; the calculator needs the amount, not a rate', async () => {
+    const { db, bank } = await setup();
+    const base = { vatRateBp: 1800, incomeTaxRateBp: 2000, nationalInsuranceRateBp: null, reserveBasis: 'net_income' as const, capitalGainsRateBp: 2500, paturCeilingAgorot: 12_283_300, pensionAvgWageAgorot: 1_376_900, pensionLowRateBp: 445, pensionHighRateBp: 1255, vatDueDay: 15 };
+    await saveTaxSettings(db, { ...base, nationalInsuranceMode: 'fixed_monthly' }, '2026-01-01');
+    expect(ratesReady(await taxSettingsAt(db, '2026-01-01'))).toBe(false);
+    await saveTaxSettings(db, { ...base, nationalInsuranceMode: 'fixed_monthly', nationalInsuranceMonthlyAgorot: 120_000 }, '2026-01-01');
+    expect(ratesReady(await taxSettingsAt(db, '2026-01-01'))).toBe(true);
+    const { tx } = await saveBusinessIncome(db, { amountAgorot: 500_000, mode: 'excl_vat', date: '2026-03-02', accountId: bank.id, received: true });
+    expect(tx.business).toMatchObject({ niReserveAgorot: 0, incomeTaxReserveAgorot: 100_000 });
+    const o = (await loadBusinessOverview(db, '2026-09-30'))!;
+    expect(o.estimatedNi).toBe(120_000 * 9);
+  });
+});

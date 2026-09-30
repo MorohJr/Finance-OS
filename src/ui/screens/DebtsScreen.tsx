@@ -9,12 +9,13 @@ import { monthlyDebt, yearlyDebt } from '../../calc/loans';
 import { currentMonthIL, formatDisplayDate, todayIL } from '../../calc/dates';
 import { sumAgorot } from '../../calc/money';
 import { he } from '../strings.he';
+import { OwedList } from './OwedScreens';
 
 const D = he.debts;
 
 export function DebtsScreen() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'given' ? 'given' : 'taken';
+  const tab = params.get('tab') === 'given' ? 'given' : params.get('tab') === 'owed' ? 'owed' : 'taken';
   const loans = useLoans();
   const lendings = useLendings();
   const spread = useSpread();
@@ -34,11 +35,14 @@ export function DebtsScreen() {
           onChange={(v) => setParams({ tab: v }, { replace: true })}
           options={[
             { value: 'taken', label: D.taken },
+            { value: 'owed', label: he.owed.tab },
             { value: 'given', label: D.given },
           ]}
         />
 
-        {tab === 'taken' ? (
+        {tab === 'owed' ? (
+          <OwedList />
+        ) : tab === 'taken' ? (
           <>
             <section className="grid grid-cols-3 gap-2 rounded-card bg-brand p-4 text-on-brand">
               <div>

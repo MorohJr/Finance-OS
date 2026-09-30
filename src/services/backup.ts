@@ -28,6 +28,7 @@ const ROW_SCHEMAS: Record<TableName, z.ZodType> = {
   wishItems: S.WishItem,
   loans: S.Loan,
   lendings: S.Lending,
+  debts: S.Debt,
   checks: S.Check,
   netWorthSnapshots: S.NetWorthSnapshot,
   sectors: S.Sector,
@@ -149,7 +150,10 @@ export function isEncryptedBackup(text: string): boolean {
  * Migrations of backup data, keyed by the version they migrate FROM (n → n+1).
  * Add a step here for every Dexie version bump (CLAUDE.md iron rule 8).
  */
-const MIGRATIONS: Record<number, (data: BackupData) => BackupData> = {};
+const MIGRATIONS: Record<number, (data: BackupData) => BackupData> = {
+  // v1 → v2: the debts table didn't exist yet.
+  1: (data) => ({ ...data, debts: data.debts ?? [] }),
+};
 
 function migrate(data: BackupData, fromVersion: number): BackupData {
   let current = data;
