@@ -2,7 +2,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatAgorot, formatBp } from '../../calc/money';
 
 /** Categorical palette tuned to the purple brand; order matters, not meaning. */
-const COLORS = ['#5B3FD9', '#16A394', '#E0892B', '#D6456E', '#3A86D6', '#8E6BE8', '#6C9A1F', '#B8860B', '#C2362F', '#2E7D6B', '#7A6F9B', '#E06AA6', '#4F5D75', '#A0522D', '#8A8A8A'];
+const COLORS = ['#26338C', '#16A394', '#E0892B', '#D6456E', '#3A86D6', '#8E6BE8', '#6C9A1F', '#B8860B', '#C2362F', '#2E7D6B', '#7A6F9B', '#E06AA6', '#4F5D75', '#A0522D', '#8A8A8A'];
 
 export default function SectorPie({ data }: { data: { name: string; value: number; weightBp: number }[] }) {
   return (

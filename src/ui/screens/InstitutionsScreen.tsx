@@ -73,7 +73,7 @@ export function InstitutionsScreen() {
     <>
       <ScreenHeader title={I.title} back />
       <div className="flex flex-col gap-4 px-4 pb-6">
-        <button type="button" className={primaryBtn} onClick={() => setDraft({ name: '', kind: 'bank', code: '', color: '#5B3FD9' })}>
+        <button type="button" className={primaryBtn} onClick={() => setDraft({ name: '', kind: 'bank', code: '', color: '#26338C' })}>
           <Icon name="plus" size={18} />
           {I.add}
         </button>

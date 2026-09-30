@@ -52,6 +52,6 @@ test('portfolio: TASE security in agorot, buy, price update, value and gain; pen
 
   // Net worth = cash 2,990 + portfolio 2,150 + pension 100,000.
   await page.goto('/');
-  await expect(page.locator('header').first()).toContainText('₪105,140.00');
+  await expect(page.getByRole('region', { name: 'שווי נטו' })).toContainText('₪105,140.00');
   await expect(page.getByText('השקעות', { exact: true })).toBeVisible();
 });

@@ -12,14 +12,14 @@ export function DemoBanner() {
   const [busy, setBusy] = useState(false);
   if (!demo) return null;
   return (
-    <div role="status" className="sticky top-0 z-30 flex items-center gap-3 bg-warning px-4 pt-[calc(env(safe-area-inset-top)+6px)] pb-1.5 text-sm text-white">
+    <div role="status" className="sticky top-0 z-30 flex items-center gap-3 bg-demo px-4 pt-[calc(env(safe-area-inset-top)+6px)] pb-1.5 text-sm text-white">
       <span className="flex-1">
         <span className="font-bold">{he.demo.active}</span> · {he.demo.activeBody}
       </span>
       <button
         type="button"
         disabled={busy}
-        className="min-h-9 shrink-0 rounded-full bg-white px-3 text-xs font-medium text-warning"
+        className="min-h-9 shrink-0 rounded-full bg-white px-3 text-xs font-medium text-demo"
         onClick={async () => {
           setBusy(true);
           try {

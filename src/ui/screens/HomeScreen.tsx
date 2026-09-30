@@ -125,15 +125,18 @@ export function HomeScreen() {
 
   return (
     <>
-      <header className="pt-safe rounded-b-[28px] bg-brand px-5 pb-6 text-on-brand">
+      <header className="pt-safe bg-surface px-4">
         <div className="flex min-h-14 items-center justify-between">
           <span className="text-lg font-bold">{he.appName}</span>
-          <Link to="/settings" aria-label={he.more.settings} className="flex size-11 items-center justify-center rounded-full active:bg-brand-strong">
+          <Link to="/settings" aria-label={he.more.settings} className="flex size-11 items-center justify-center rounded-full text-muted active:bg-surface-2">
             <Icon name="settings" />
           </Link>
         </div>
+      </header>
+
+      <section aria-label={H.netWorth} className="mx-4 mt-4 rounded-card bg-brand px-4 py-3.5 text-on-brand shadow-sm">
         {active.length ? (
-          <button type="button" onClick={() => setNwOpen(true)} className="-mx-2 block w-[calc(100%+1rem)] rounded-2xl px-2 py-1 text-start active:bg-brand-strong">
+          <button type="button" onClick={() => setNwOpen(true)} className="-m-1 block w-[calc(100%+0.5rem)] rounded-xl p-1 text-start active:bg-brand-strong">
             <span className="flex items-center gap-1 text-sm text-on-brand-muted">
               {H.netWorth}
               <span className="ms-auto flex items-center gap-0.5 text-xs">
@@ -141,22 +144,22 @@ export function HomeScreen() {
                 <Icon name="chevron" size={16} />
               </span>
             </span>
-            <Money agorot={nw.netWorth} className="mt-1 block text-4xl font-bold" />
+            <Money agorot={nw.netWorth} className="mt-0.5 block text-3xl font-bold" />
             {nw.pensionIlliquid > 0 && <span className="mt-0.5 block text-xs text-on-brand-muted">{H.nwIncludesPension(formatAgorot(nw.pensionIlliquid, { hideAgorot: true }))}</span>}
+            {lastSnapshot && lastSnapshot.month < currentMonthIL() && (
+              <span className="mt-0.5 block text-xs text-on-brand-muted">
+                <Money agorot={nwChange} signed className="font-medium text-on-brand" /> {H.changeFromLastMonth('').trim()}
+              </span>
+            )}
           </button>
         ) : (
           <>
             <p className="text-sm text-on-brand-muted">{H.netWorth}</p>
-            <p className="num mt-1 text-4xl font-bold">—</p>
-            <p className="mt-1 text-sm text-on-brand-muted">{H.netWorthPending}</p>
+            <p className="num mt-0.5 text-3xl font-bold">—</p>
+            <p className="mt-0.5 text-xs text-on-brand-muted">{H.netWorthPending}</p>
           </>
         )}
-        {active.length > 0 && lastSnapshot && lastSnapshot.month < currentMonthIL() && (
-          <p className="mt-1 text-sm text-on-brand-muted">
-            <Money agorot={nwChange} signed className="text-on-brand" /> {H.changeFromLastMonth('').trim()}
-          </p>
-        )}
-      </header>
+      </section>
 
       <BottomSheet open={nwOpen} title={H.nw.title} onClose={() => setNwOpen(false)}>
         <NetWorthBreakdown nw={nw} />

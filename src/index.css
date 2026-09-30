@@ -1,42 +1,43 @@
 @import 'tailwindcss';
 
-/* Design direction 4, "בנק דיגיטלי" (SPEC 8). Every color is a token. */
+/* Design direction 4, "בנק דיגיטלי" (SPEC 8), in dark indigo blue (owner request 01/10/2026). Every color is a token. */
 :root {
-  --bg: #f2f0fa;
+  --bg: #eff1f8;
   --surface: #ffffff;
-  --surface-2: #f7f6fc;
-  --text: #1e1b3a;
-  --muted: #6b6890;
-  --line: #e4e0f5;
-  --brand: #5b3fd9;
-  --brand-strong: #4a31bd;
-  --brand-soft: #ede9fd;
-  --brand-text: #5b3fd9;
+  --surface-2: #f6f7fc;
+  --text: #161b3a;
+  --muted: #5f6789;
+  --line: #dfe3f1;
+  --brand: #26338c;
+  --brand-strong: #1c276e;
+  --brand-soft: #e6e9f7;
+  --brand-text: #26338c;
   --on-brand: #ffffff;
-  --on-brand-muted: #d9d2ff;
+  --on-brand-muted: #c9d0f2;
   --income: #137336;
   --expense: #c2362f;
-  --transfer: #6b6890;
+  --transfer: #5f6789;
   --warning: #b45309;
+  --demo: #b45309;
   --warning-soft: #fff4e5;
   --danger-soft: #fdecec;
-  --scrim: rgb(20 18 42 / 0.45);
+  --scrim: rgb(15 19 40 / 0.45);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #14122a;
-    --surface: #1e1b3a;
-    --surface-2: #262245;
-    --text: #f1efff;
-    --muted: #a9a5cc;
-    --line: #2f2a55;
-    --brand-soft: #2a2358;
-    --brand-text: #a794ff;
+    --bg: #0f1328;
+    --surface: #181e3a;
+    --surface-2: #20274a;
+    --text: #eef0ff;
+    --muted: #a3aacc;
+    --line: #2a3160;
+    --brand-soft: #1f2757;
+    --brand-text: #93a4ff;
     --income: #4ade80;
     --expense: #f87171;
-    --transfer: #a9a5cc;
+    --transfer: #a3aacc;
     --warning: #fbbf24;
     --warning-soft: #3a2a10;
     --danger-soft: #3b1618;
@@ -46,17 +47,17 @@
 }
 
 :root[data-theme='dark'] {
-  --bg: #14122a;
-  --surface: #1e1b3a;
-  --surface-2: #262245;
-  --text: #f1efff;
-  --muted: #a9a5cc;
-  --line: #2f2a55;
-  --brand-soft: #2a2358;
-  --brand-text: #a794ff;
+  --bg: #0f1328;
+  --surface: #181e3a;
+  --surface-2: #20274a;
+  --text: #eef0ff;
+  --muted: #a3aacc;
+  --line: #2a3160;
+  --brand-soft: #1f2757;
+  --brand-text: #93a4ff;
   --income: #4ade80;
   --expense: #f87171;
-  --transfer: #a9a5cc;
+  --transfer: #a3aacc;
   --warning: #fbbf24;
   --warning-soft: #3a2a10;
   --danger-soft: #3b1618;
@@ -82,6 +83,7 @@
   --color-expense: var(--expense);
   --color-transfer: var(--transfer);
   --color-warning: var(--warning);
+  --color-demo: var(--demo);
   --color-warning-soft: var(--warning-soft);
   --color-danger-soft: var(--danger-soft);
   --color-scrim: var(--scrim);

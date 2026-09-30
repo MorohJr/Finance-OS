@@ -52,7 +52,7 @@ test('debt in a settlement: charges, fixed monthly payments, net worth and forec
 
   // Net worth: 20,000 − 1,500 paid − 11,100 still owed; the monthly metric counts the arrangement.
   await page.goto('/');
-  await expect(page.locator('header').first()).toContainText('₪7,400.00');
+  await expect(page.getByRole('region', { name: 'שווי נטו' })).toContainText('₪7,400.00');
   await expect(page.getByRole('link', { name: /חובות/ })).toContainText('₪1,500.00');
   await page.goto('/plan/forecast?days=60');
   await expect(page.getByText('הוצאה לפועל').first()).toBeVisible();
