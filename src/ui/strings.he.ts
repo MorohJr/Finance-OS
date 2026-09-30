@@ -146,6 +146,8 @@ export const he = {
     refund: 'זיכוי',
     businessIncome: 'הכנסה עסקית',
     businessExpense: 'הוצאה עסקית',
+    payslip: 'תלוש שכר',
+    check: "צ'ק",
     adjustment: 'תיקון יתרה',
     account: 'חשבון',
     needAccount: 'כדי להוסיף תנועה צריך קודם חשבון.',
@@ -840,6 +842,7 @@ export const he = {
     manualNote: 'כל הערכים מוזנים מהתלוש. האפליקציה לא מחשבת מס לשכיר.',
     paidOn: (d: string) => `ייכנס לחשבון ב-${d}`,
     deleteHas: 'יש תלושים למעסיק הזה.',
+    needEmployer: 'כדי להזין תלוש, הוסף קודם את המעסיק.',
   },
 
   tax: {

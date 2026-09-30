@@ -51,3 +51,21 @@ test('payslip: net income arrives on pay day, pension deposit reaches the fund, 
   await expect(page.getByText('09/11/2026')).toBeVisible();
   await expect(page.getByText('משכורת', { exact: true }).first()).toBeVisible();
 });
+
+test('➕ offers a payslip; without an employer it asks for one first, then continues to the payslip', async ({ page }) => {
+  await page.goto('/accounts/new');
+  await page.getByLabel('שם החשבון').fill('עו"ש');
+  await page.getByRole('button', { name: 'שמירה' }).click();
+  await expect(page.getByRole('heading', { name: 'עו"ש' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'ניווט ראשי' }).getByRole('button', { name: 'הוספה' }).click();
+  await page.getByRole('dialog', { name: 'הוספה מהירה' }).getByRole('button', { name: 'תלוש שכר' }).click();
+  await page.getByLabel('שם המעסיק').fill('חברת הייטק');
+  await page.getByRole('button', { name: 'שמירה' }).click();
+  await expect(page.getByRole('heading', { name: 'תלוש חדש' })).toBeVisible();
+  await expect(page.getByLabel('מעסיק', { exact: true })).toHaveValue(/.+/);
+  // Next time ➕ goes straight to the payslip.
+  await page.goto('/');
+  await page.getByRole('navigation', { name: 'ניווט ראשי' }).getByRole('button', { name: 'הוספה' }).click();
+  await page.getByRole('dialog', { name: 'הוספה מהירה' }).getByRole('button', { name: 'תלוש שכר' }).click();
+  await expect(page.getByRole('heading', { name: 'תלוש חדש' })).toBeVisible();
+});

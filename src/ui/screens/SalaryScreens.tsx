@@ -101,6 +101,7 @@ export function SalaryScreen() {
 
 export function EmployerFormScreen() {
   const { id } = useParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
   const goBack = useGoBack('/salary');
   const isNew = !id || id === 'new';
@@ -132,8 +133,10 @@ export function EmployerFormScreen() {
       pensionFundId: f.pensionFundId || undefined,
     };
     try {
-      await saveEmployer(db, input, isNew ? undefined : id);
-      goBack();
+      const saved = await saveEmployer(db, input, isNew ? undefined : id);
+      // Opened from ➕ "תלוש שכר" without an employer: continue straight to the payslip.
+      if (params.get('then') === 'payslip') navigate(`/salary/payslip/new?employerId=${saved.id}`, { replace: true });
+      else goBack();
     } catch (err) {
       setError(err instanceof ValidationError ? err.issues.map((i) => i.message).join(' · ') : he.common.errorGeneric);
     }
@@ -298,6 +301,18 @@ export function PayslipFormScreen() {
   }
 
   if (!loaded || !employers) return <ScreenHeader title={S.editPayslip} back />;
+  if (employers.length === 0)
+    return (
+      <>
+        <ScreenHeader title={S.addPayslip} back />
+        <div className="flex flex-col gap-3 px-4">
+          <p className="text-sm text-muted">{S.needEmployer}</p>
+          <Link to="/salary/employer/new?then=payslip" replace className={primaryBtn}>
+            {S.addEmployer}
+          </Link>
+        </div>
+      </>
+    );
   return (
     <>
       <ScreenHeader title={isNew ? S.addPayslip : S.editPayslip} back />

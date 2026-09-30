@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router';
 import { BottomSheet } from '../components/BottomSheet';
 import { Icon, type IconName } from '../components/Icon';
 import { primaryBtn } from '../components/Form';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useAccounts, useBusiness } from '../data';
+import { db } from '../../db/db';
 import { he } from '../strings.he';
 
 const MAIN: { kind: string; label: string; icon: IconName; tone: string }[] = [
@@ -20,6 +22,7 @@ export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () =>
   const navigate = useNavigate();
   const accounts = useAccounts();
   const business = useBusiness();
+  const employers = useLiveQuery(() => db.employers.filter((e) => !e.deletedAt).count(), []);
   const hasAccounts = (accounts ?? []).some((a) => a.status === 'active');
   const go = (to: string) => {
     onClose();
@@ -55,6 +58,20 @@ export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             </div>
           )}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => go(employers ? '/salary/payslip/new' : '/salary/employer/new?then=payslip')}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-surface-2 text-sm font-medium"
+            >
+              <Icon name="salary" size={20} className="text-income" />
+              {he.quickAdd.payslip}
+            </button>
+            <button type="button" onClick={() => go('/checks/new')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-surface-2 text-sm font-medium">
+              <Icon name="check" size={20} className="text-brand-text" />
+              {he.quickAdd.check}
+            </button>
+          </div>
           <div className="mt-3 flex justify-center gap-2">
             {EXTRA.map((o) => (
               <button key={o.kind} type="button" onClick={() => go(`/transactions/new?kind=${o.kind}`)} className="min-h-11 rounded-full bg-surface-2 px-4 text-sm text-muted">
