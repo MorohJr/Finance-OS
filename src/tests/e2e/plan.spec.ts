@@ -81,6 +81,9 @@ test('forecast: rent pushes the balance below zero and warns', async ({ page }) 
   await expect(page.getByRole('alert')).toContainText('01/10/2026');
   await expect(page.getByText('שכר דירה')).toBeVisible();
   await page.goto('/');
-  await expect(page.getByText('צפוי ב-30 הימים הקרובים')).toBeVisible();
-  await expect(page.getByText(/היתרה צפויה לרדת מתחת ל-0/)).toBeVisible();
+  // Insight at the top, and the forecast chart in the "future" tab.
+  await expect(page.getByRole('link', { name: /צפוי לרדת ל-.*01\/10\/2026/ })).toBeVisible();
+  await page.getByRole('tab', { name: 'עתיד' }).click();
+  await expect(page.getByText('יתרה צפויה, 30 יום')).toBeVisible();
+  await expect(page.getByText('שכר דירה')).toBeVisible();
 });

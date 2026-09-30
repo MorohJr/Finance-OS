@@ -86,6 +86,13 @@ export function formatBp(bp: number): string {
   return `${sign}${frac === 0 ? whole : `${whole}.${String(frac).padStart(2, '0').replace(/0$/, '')}`}%`;
 }
 
+/** Whole percent for charts and shares: 4749 → "47%", 4750 → "48%", −1234 → "−12%". */
+export function formatBpWhole(bp: number): string {
+  assertInt(bp, 'bp');
+  const sign = bp < 0 ? MINUS : '';
+  return `${sign}${divRoundHalfUp(Math.abs(bp), 100)}%`;
+}
+
 // ---------------------------------------------------------------------------
 // Parsing (forms and imports). String-based, never via parseFloat.
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Banner } from '../components/Banner';
 import { BottomSheet } from '../components/BottomSheet';
@@ -6,28 +6,25 @@ import { formatAgorot } from '../../calc/money';
 import { Card, SectionTitle } from '../components/Card';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
-import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings, useDebts, useDemoMode } from '../data';
-import { formatBp } from '../../calc/money';
+import { byId, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useBusiness, useBusinessOverview, useTaxSettings, useDebts, useDemoMode, useSnapshots } from '../data';
 import { monthlyDebt } from '../../calc/loans';
-import { ForecastEvents } from '../components/ForecastEvents';
 import { ProgressBar } from '../components/ProgressBar';
 import { upcomingReminders } from '../../calc/recurring';
 import { budgetState } from '../../calc/budget';
-import { CardSummary } from '../components/CardSummary';
 import { usePlatform, useSettings } from '../hooks';
 import { isBackupDue } from '../../calc/reminders';
 import { currentMonthIL, formatDisplayDate, todayIL } from '../../calc/dates';
-import { monthRange, summarizeFlows } from '../../calc/cashflow';
+import { monthRange, previousMonth, summarizeFlows } from '../../calc/cashflow';
 import { computeNetWorth, netWorthChange } from '../../calc/netWorth';
 import { sortTransactions } from '../../calc/transactionFilter';
+import { buildInsights, categoriesAboveUsual } from '../../calc/dashboard';
+import { AccountsCarousel, CardsCarousel, DashboardTabs, InsightsSection } from './HomeSections';
 import { isIos } from '../../services/platform';
 import { sumAgorot } from '../../calc/money';
 import { he } from '../strings.he';
 
 const H = he.home;
-const SectorPie = lazy(() => import('../components/SectorPie'));
 
 function Metric({ label, children, to }: { label: string; children?: ReactNode; to?: string }) {
   const body = (
@@ -80,7 +77,6 @@ export function HomeScreen() {
   const portfolio = usePortfolio();
   const pension = usePension();
   const lastSnapshot = useLastSnapshot();
-  const sectorNames = byId(useSectors());
   const business = useBusiness();
   const bizOverview = useBusinessOverview();
   const tax = useTaxSettings();
@@ -116,8 +112,24 @@ export function HomeScreen() {
   const forecast30 = useForecast(primaryBank?.id, today, 30);
   const reminders = useMemo(() => upcomingReminders(recurring ?? [], today, 30), [recurring, today]);
   const recurringById = byId(recurring);
+  const snapshots = useSnapshots();
+  const insights = useMemo(() => {
+    if (!txs || !flowOptions) return [];
+    const prev = previousMonth(currentMonthIL());
+    const last = summarizeFlows(txs, { ...flowOptions, ...monthRange(prev) });
+    return buildInsights({
+      today,
+      forecast: forecast30 && primaryBank ? { accountName: primaryBank.name, belowZero: forecast30.belowZero, minDate: forecast30.minDate, minBalance: forecast30.minBalance } : undefined,
+      cardCharges: (cardsData ?? []).flatMap((c) => (c.status.nextCharge ? [{ cardName: c.data.card.name, chargeDate: c.status.nextCharge.chargeDate, total: c.status.nextCharge.total, billingBalance: balances.get(c.data.card.billingAccountId) ?? 0 }] : [])),
+      vat: bizOverview?.currentVat ? { dueDate: bizOverview.currentVat.dueDate, vatDue: bizOverview.currentVat.vatDue, paid: bizOverview.currentVat.paid } : undefined,
+      budgetOver: budget?.lines ?? [],
+      aboveUsual: categoriesAboveUsual(txs, today, flowOptions),
+      reminders: reminders.map((r) => ({ name: recurringById.get(r.recurringId)?.name ?? '', date: r.date, kind: r.kind, amount: recurringById.get(r.recurringId)?.amountAgorot })),
+      lastMonth: { month: prev, savingsRateBp: last.savingsRateBp },
+    });
+  }, [txs, flowOptions, today, forecast30, primaryBank, cardsData, balances, bizOverview, budget, reminders, recurringById]);
   const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), ...flowOptions }), [txs, flowOptions]);
-  const recent = useMemo(() => sortTransactions(txs ?? []).slice(0, 5), [txs]);
+  const recent = useMemo(() => sortTransactions((txs ?? []).filter((t) => !t.deletedAt && t.status === 'cleared' && t.date <= todayIL())).slice(0, 3), [txs]);
 
   const backupDue = settings && hasData !== undefined && isBackupDue(settings.lastBackupAt, hasData);
   const lastBackupLabel = settings?.lastBackupAt ? formatDisplayDate(todayIL(new Date(settings.lastBackupAt))) : he.banners.backupNever;
@@ -232,19 +244,6 @@ export function HomeScreen() {
           </Card>
         )}
 
-        {(cards ?? []).some((c) => c.status === 'active') && (
-          <section>
-            <SectionTitle>{H.cards}</SectionTitle>
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {(cards ?? [])
-                .filter((c) => c.status === 'active')
-                .map((c) => (
-                  <CardSummary key={c.id} card={c} status={cardsData?.find((d) => d.data.card.id === c.id)?.status} issuer={institutions.get(c.issuerId)} />
-                ))}
-            </div>
-          </section>
-        )}
-
         {recurringPending.length > 0 && (
           <Link to="/plan/recurring" className="flex min-h-12 items-center gap-2 rounded-card bg-warning-soft px-4 text-sm font-medium text-warning">
             <Icon name="alert" size={18} />
@@ -252,28 +251,41 @@ export function HomeScreen() {
           </Link>
         )}
 
-        {primaryBank && forecast30 && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{he.forecast.upcoming30}</SectionTitle>
-              <Link to={`/plan/forecast?account=${primaryBank.id}&days=30`} className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <div className={`mb-2 flex items-center justify-between rounded-2xl px-4 py-3 ${forecast30.belowZero ? 'bg-warning-soft' : 'bg-surface'} border border-line`}>
-              <span className="text-sm">
-                {he.forecast.forecastBalance} · {primaryBank.name}
-              </span>
-              <Money agorot={forecast30.endBalance} tone={forecast30.endBalance < 0 ? 'expense' : 'plain'} className="font-medium" />
-            </div>
-            {forecast30.belowZero && <p className="mb-2 px-1 text-xs text-warning">{he.forecast.belowZero(formatDisplayDate(forecast30.minDate))}</p>}
-            <ForecastEvents events={forecast30.events} limit={6} />
-          </section>
+        <InsightsSection insights={insights} categories={categories} />
+
+        <CardsCarousel cards={cards ?? []} data={cardsData} institutions={institutions} />
+
+        <AccountsCarousel accounts={visible} balances={balances} txs={txs ?? []} institutions={institutions} today={today} />
+
+        {active.length > 0 && txs && flowOptions && (
+          <DashboardTabs
+            today={today}
+            txs={txs}
+            flowOptions={flowOptions}
+            categories={categories}
+            payees={payees}
+            budget={budget}
+            nw={nw}
+            snapshots={snapshots ?? []}
+            portfolio={portfolio}
+            pension={pension}
+            forecast={forecast30}
+            forecastAccount={primaryBank}
+            wishes={wishes}
+            business={business}
+            bizOverview={bizOverview}
+            tax={tax}
+          />
         )}
 
         {active.length > 0 && (
-          <section>
-            <SectionTitle>{H.recent}</SectionTitle>
+          <section className="pb-2">
+            <div className="flex items-center justify-between">
+              <SectionTitle>{H.recent}</SectionTitle>
+              <Link to="/transactions" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
             {recent.length ? (
               <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
                 {recent.map((t) => (
@@ -285,168 +297,6 @@ export function HomeScreen() {
                 <p className="text-sm text-muted">{H.noRecent}</p>
               </Card>
             )}
-          </section>
-        )}
-
-        {budget && budget.lines.some((l) => l.spent > 0) && (
-          <section className="pb-2">
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.topCategories}</SectionTitle>
-              <Link to="/plan/budget" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="flex flex-col gap-3">
-              {budget.lines
-                .filter((l) => l.spent > 0)
-                .slice(0, 5)
-                .map((l) => (
-                  <div key={l.categoryId} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-sm">
-                      <span>{categoryLabel(categories.get(l.categoryId), categories)}</span>
-                      <span className="flex gap-1">
-                        <Money agorot={l.spent} />
-                        {l.budget !== null && (
-                          <span className="text-muted">
-                            / <Money agorot={l.budget} />
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    {l.budget !== null && <ProgressBar usedBp={l.usedBp} state={l.state} label={categoryLabel(categories.get(l.categoryId), categories)} />}
-                  </div>
-                ))}
-            </Card>
-          </section>
-        )}
-
-        {business && bizOverview && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{business.name}</SectionTitle>
-              <Link to="/business" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted">{he.business.incomeThisMonth}</p>
-                <Money agorot={bizOverview.incomeThisMonth} className="font-medium" />
-              </div>
-              <div>
-                <p className="text-xs text-muted">{he.business.setAsideYtd}</p>
-                <Money agorot={bizOverview.setAsideYtd} className="font-medium" />
-              </div>
-              {bizOverview.currentVat && (
-                <div>
-                  <p className="text-xs text-muted">{he.business.vatThisPeriod}</p>
-                  <Money agorot={bizOverview.currentVat.vatDue} className="font-medium" />
-                </div>
-              )}
-              {bizOverview.patur && tax && (
-                <div className="col-span-2 flex flex-col gap-1">
-                  <p className="text-xs text-muted">
-                    {he.business.turnover} <Money agorot={bizOverview.patur.turnoverYtd} /> / <Money agorot={tax.paturCeilingAgorot} />
-                  </p>
-                  <ProgressBar usedBp={bizOverview.patur.pctOfCeilingBp} state={bizOverview.patur.alerts.includes('over') ? 'over' : bizOverview.patur.alerts.length ? 'near' : 'ok'} label={he.business.patur} />
-                </div>
-              )}
-            </Card>
-          </section>
-        )}
-
-        {(wishes ?? []).some((w) => w.item.status === 'active') && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.wishes}</SectionTitle>
-              <Link to="/plan/wish" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="flex flex-col gap-3">
-              {(wishes ?? [])
-                .filter((w) => w.item.status === 'active')
-                .slice(0, 3)
-                .map((w) => (
-                  <Link key={w.item.id} to={`/plan/wish/${w.item.id}`} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-sm">
-                      <span>{w.item.name}</span>
-                      <span className="flex gap-1">
-                        <Money agorot={w.status.savedOrPaid} />
-                        <span className="text-muted">
-                          / <Money agorot={w.item.priceAgorot} />
-                        </span>
-                      </span>
-                    </div>
-                    <ProgressBar usedBp={w.status.progressBp} state={w.status.label === 'behind' ? 'near' : 'ok'} label={w.item.name} />
-                  </Link>
-                ))}
-            </Card>
-          </section>
-        )}
-
-        {reminders.length > 0 && (
-          <section>
-            <SectionTitle>{H.renewSoon}</SectionTitle>
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {reminders.slice(0, 5).map((r) => (
-                <Link key={`${r.recurringId}-${r.kind}`} to={`/plan/recurring/${r.recurringId}`} className="flex min-h-12 items-center justify-between px-4 py-2 text-sm">
-                  <span>
-                    {recurringById.get(r.recurringId)?.name} · <span className="text-muted">{he.recurring.reminders[r.kind]}</span>
-                  </span>
-                  <span className="num text-muted">{formatDisplayDate(r.date)}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {portfolio && portfolio.totalValue > 0 && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.investments}</SectionTitle>
-              <Link to="/investments" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <Card className="flex flex-col gap-3">
-              <div className="flex items-baseline justify-between">
-                <Money agorot={portfolio.totalValue} className="text-xl font-bold" />
-                <span className="text-sm">
-                  <Money agorot={portfolio.unrealized} tone={portfolio.unrealized >= 0 ? 'income' : 'expense'} />
-                  {portfolio.unrealizedBp !== null && <span className="num text-muted"> ({formatBp(portfolio.unrealizedBp)})</span>}
-                </span>
-              </div>
-              {portfolio.sectors.length > 1 && (
-                <Suspense fallback={<div className="h-44" />}>
-                  <SectorPie data={portfolio.sectors.map((x) => ({ name: x.sectorId ? (sectorNames.get(x.sectorId)?.name ?? he.invest.noSector) : he.invest.noSector, value: x.marketValue, weightBp: x.weightBp }))} />
-                </Suspense>
-              )}
-            </Card>
-          </section>
-        )}
-
-        {active.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between">
-              <SectionTitle>{H.accounts}</SectionTitle>
-              <Link to="/accounts" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
-                {he.common.showMore}
-              </Link>
-            </div>
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {visible.slice(0, 5).map((a) => {
-                const inst = a.institutionId ? institutions.get(a.institutionId) : undefined;
-                const bal = balances.get(a.id) ?? 0;
-                return (
-                  <Link key={a.id} to={`/accounts/${a.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-surface-2">
-                    <Monogram name={inst?.name ?? a.name} color={a.color ?? inst?.color} size={32} logoId={a.logoAttachmentId ?? inst?.logoAttachmentId} />
-                    <span className="flex-1 truncate">{a.name}</span>
-                    <Money agorot={bal} tone={bal < 0 ? 'expense' : 'plain'} className="font-medium" />
-                  </Link>
-                );
-              })}
-            </div>
           </section>
         )}
       </div>

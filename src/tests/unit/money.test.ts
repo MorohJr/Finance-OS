@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { divRoundHalfUp, formatAgorot, formatBp, mulBp, parseAmountToAgorot, parsePercentToBp, sumAgorot } from '../../calc/money';
+import { divRoundHalfUp, formatAgorot, formatBp, mulBp, parseAmountToAgorot, parsePercentToBp, sumAgorot, formatBpWhole } from '../../calc/money';
 
 describe('divRoundHalfUp', () => {
   it('rounds half up, symmetric for negatives', () => {
@@ -92,5 +92,14 @@ describe('parsePercentToBp', () => {
     expect(parsePercentToBp('4.5')).toBe(450);
     expect(parsePercentToBp('x')).toBeNull();
     expect(parsePercentToBp('1.234')).toBeNull();
+  });
+});
+
+describe('formatBpWhole', () => {
+  it('rounds half up to a whole percent', () => {
+    expect(formatBpWhole(4749)).toBe('47%');
+    expect(formatBpWhole(4750)).toBe('48%');
+    expect(formatBpWhole(-1234)).toBe('−12%');
+    expect(formatBpWhole(0)).toBe('0%');
   });
 });

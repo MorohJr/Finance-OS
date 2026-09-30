@@ -244,6 +244,10 @@ export function useSectors(): Sector[] | undefined {
   return useLiveQuery(() => db.sectors.filter((s) => !s.deletedAt).sortBy('sortOrder'), []);
 }
 
+export function useSnapshots(): NetWorthSnapshot[] | undefined {
+  return useLiveQuery(() => db.netWorthSnapshots.orderBy('month').toArray(), []);
+}
+
 export function useLastSnapshot(): NetWorthSnapshot | undefined {
   return useLiveQuery(() => db.netWorthSnapshots.orderBy('month').last(), []);
 }

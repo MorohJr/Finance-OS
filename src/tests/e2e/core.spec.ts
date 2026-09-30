@@ -55,7 +55,8 @@ test('account with opening balance, expense, transfer: balances are sums of tran
 
   await page.goto('/');
   await expect(page.getByRole('link', { name: /תזרים החודש/ })).toContainText('+₪300.00'); // 500 − 200, transfer excluded
-  await expect(page.getByText('קטגוריות החודש')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'החודש', selected: true })).toBeVisible();
+  await expect(page.getByText('לאן הלך הכסף')).toBeVisible();
 
   // Search and delete with undo.
   await nav(page).getByRole('link', { name: 'תנועות' }).click();
