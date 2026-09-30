@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 import { BottomSheet } from '../components/BottomSheet';
 import { Icon, type IconName } from '../components/Icon';
 import { primaryBtn } from '../components/Form';
-import { useAccounts } from '../data';
+import { useAccounts, useBusiness } from '../data';
 import { he } from '../strings.he';
 
 const MAIN: { kind: string; label: string; icon: IconName; tone: string }[] = [
@@ -19,6 +19,7 @@ const EXTRA = [
 export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
+  const business = useBusiness();
   const hasAccounts = (accounts ?? []).some((a) => a.status === 'active');
   const go = (to: string) => {
     onClose();
@@ -44,6 +45,16 @@ export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             ))}
           </div>
+          {business && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => go('/business/income/new')} className="min-h-12 rounded-2xl bg-brand-soft text-sm font-medium text-brand-text">
+                {he.quickAdd.businessIncome}
+              </button>
+              <button type="button" onClick={() => go('/business/expense/new')} className="min-h-12 rounded-2xl bg-surface-2 text-sm">
+                {he.quickAdd.businessExpense}
+              </button>
+            </div>
+          )}
           <div className="mt-3 flex justify-center gap-2">
             {EXTRA.map((o) => (
               <button key={o.kind} type="button" onClick={() => go(`/transactions/new?kind=${o.kind}`)} className="min-h-11 rounded-full bg-surface-2 px-4 text-sm text-muted">

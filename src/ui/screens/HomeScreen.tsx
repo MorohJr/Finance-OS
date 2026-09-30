@@ -6,7 +6,7 @@ import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Monogram } from '../components/Monogram';
 import { TransactionRow } from '../components/TransactionRow';
-import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors } from '../data';
+import { byId, categoryLabel, useAccounts, useBalances, useBudget, useCards, useCardsData, useCategories, useForecast, useHasData, useInstitutions, usePayees, usePending, useRecurring, useSpread, useTransactions, useLoans, useLendings, useChecks, useFlowOptions, useWishes, usePortfolio, usePension, useLastSnapshot, useSectors, useBusiness, useBusinessOverview, useTaxSettings } from '../data';
 import { formatBp } from '../../calc/money';
 import { monthlyDebt } from '../../calc/loans';
 import { ForecastEvents } from '../components/ForecastEvents';
@@ -76,6 +76,9 @@ export function HomeScreen() {
   const pension = usePension();
   const lastSnapshot = useLastSnapshot();
   const sectorNames = byId(useSectors());
+  const business = useBusiness();
+  const bizOverview = useBusinessOverview();
+  const tax = useTaxSettings();
   const nw = useMemo(
     () =>
       computeNetWorth({
@@ -268,6 +271,41 @@ export function HomeScreen() {
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {business && bizOverview && (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionTitle>{business.name}</SectionTitle>
+              <Link to="/business" className="min-h-11 px-1 pt-2 text-sm text-brand-text">
+                {he.common.showMore}
+              </Link>
+            </div>
+            <Card className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted">{he.business.incomeThisMonth}</p>
+                <Money agorot={bizOverview.incomeThisMonth} className="font-medium" />
+              </div>
+              <div>
+                <p className="text-xs text-muted">{he.business.setAsideYtd}</p>
+                <Money agorot={bizOverview.setAsideYtd} className="font-medium" />
+              </div>
+              {bizOverview.currentVat && (
+                <div>
+                  <p className="text-xs text-muted">{he.business.vatThisPeriod}</p>
+                  <Money agorot={bizOverview.currentVat.vatDue} className="font-medium" />
+                </div>
+              )}
+              {bizOverview.patur && tax && (
+                <div className="col-span-2 flex flex-col gap-1">
+                  <p className="text-xs text-muted">
+                    {he.business.turnover} <Money agorot={bizOverview.patur.turnoverYtd} /> / <Money agorot={tax.paturCeilingAgorot} />
+                  </p>
+                  <ProgressBar usedBp={bizOverview.patur.pctOfCeilingBp} state={bizOverview.patur.alerts.includes('over') ? 'over' : bizOverview.patur.alerts.length ? 'near' : 'ok'} label={he.business.patur} />
+                </div>
+              )}
+            </Card>
           </section>
         )}
 

@@ -1,27 +1,23 @@
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ListGroup, ListRow } from '../components/ListRow';
-import { MODULES, type ModuleKey } from '../modules';
+import { MODULES } from '../modules';
+import { useBusiness } from '../data';
 import { he } from '../strings.he';
 
-// SPEC 7.1 order. When the business module is active it moves to the top (stage 8).
-const BUSINESS: ModuleKey[] = ['business', 'tax'];
-const TOOLS: ModuleKey[] = ['reports'];
-
-function Group({ items }: { items: ModuleKey[] }) {
-  return (
+/** SPEC 7.1: when the business module is active, it's shown first. */
+export function MoreScreen() {
+  const business = useBusiness();
+  const businessGroup = (
     <ListGroup>
-      {items.map((k) => (
-        <ListRow key={k} to={`/soon/${k}`} icon={MODULES[k].icon} label={MODULES[k].label} hint={he.common.comingInStage(MODULES[k].stage)} />
-      ))}
+      <ListRow to="/business" icon="business" label={business ? business.name : he.more.business} />
+      <ListRow to="/tax" icon="percent" label={he.more.tax} />
     </ListGroup>
   );
-}
-
-export function MoreScreen() {
   return (
     <>
       <ScreenHeader title={he.more.title} />
       <div className="flex flex-col gap-4 px-4">
+        {business && businessGroup}
         <ListGroup>
           <ListRow to="/accounts" icon="wallet" label={he.more.accounts} />
           <ListRow to="/debts" icon="loan" label={he.more.debts} />
@@ -30,12 +26,10 @@ export function MoreScreen() {
           <ListRow to="/pension" icon="pension" label={he.more.pension} />
           <ListRow to="/salary" icon="salary" label={he.more.salary} />
         </ListGroup>
-        <Group items={BUSINESS} />
+        {!business && businessGroup}
         <ListGroup>
           <ListRow to="/import" icon="import" label={he.more.import} />
-          {TOOLS.map((k) => (
-            <ListRow key={k} to={`/soon/${k}`} icon={MODULES[k].icon} label={MODULES[k].label} hint={he.common.comingInStage(MODULES[k].stage)} />
-          ))}
+          <ListRow to={`/soon/reports`} icon={MODULES.reports.icon} label={MODULES.reports.label} hint={he.common.comingInStage(MODULES.reports.stage)} />
         </ListGroup>
         <ListGroup>
           <ListRow to="/settings" icon="settings" label={he.more.settings} />

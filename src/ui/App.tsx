@@ -28,6 +28,8 @@ import { InvestmentsScreen } from './screens/InvestmentsScreen';
 import { PricesScreen, SecurityScreen, TradeFormScreen } from './screens/SecurityScreens';
 import { FundScreen, PensionScreen } from './screens/PensionScreens';
 import { EmployerFormScreen, PayslipFormScreen, SalaryScreen } from './screens/SalaryScreens';
+import { BusinessExpenseScreen, BusinessScreen, BusinessSetupScreen, IncomeCalculatorScreen } from './screens/BusinessScreens';
+import { TaxSettingsScreen } from './screens/TaxSettingsScreen';
 
 // SheetJS is large; load the importer only when it's opened.
 const ImportScreen = lazy(() => import('./screens/ImportScreen').then((m) => ({ default: m.ImportScreen })));
@@ -98,6 +100,11 @@ export function App() {
             <Route path="salary" element={<SalaryScreen />} />
             <Route path="salary/employer/:id" element={<Fresh>{(k) => <EmployerFormScreen key={k} />}</Fresh>} />
             <Route path="salary/payslip/:id" element={<Fresh>{(k) => <PayslipFormScreen key={k} />}</Fresh>} />
+            <Route path="business" element={<BusinessScreen />} />
+            <Route path="business/setup" element={<BusinessSetupScreen />} />
+            <Route path="business/income/:id" element={<Fresh>{(k) => <IncomeCalculatorScreen key={k} />}</Fresh>} />
+            <Route path="business/expense/:id" element={<Fresh>{(k) => <BusinessExpenseScreen key={k} />}</Fresh>} />
+            <Route path="tax" element={<TaxSettingsScreen />} />
             <Route path="checks" element={<ChecksScreen />} />
             <Route path="checks/new" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />
             <Route path="checks/:id" element={<Fresh>{(k) => <CheckFormScreen key={k} />}</Fresh>} />

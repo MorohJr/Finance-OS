@@ -1,7 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import type { Account, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, Transaction, WishItem } from '../domain/schemas';
+import type { Account, Business, Card, Category, Check, InstallmentPlan, Institution, Lending, Loan, NetWorthSnapshot, Payee, Recurring, Sector, TaxSettings, Transaction, WishItem } from '../domain/schemas';
+import { loadBusinessOverview, taxSettingsAt } from '../services/business';
+import type { BusinessOverview } from '../calc/business/overview';
 import { portfolio, type Portfolio } from '../calc/investments';
 import { fundViews, type FundView } from '../calc/pension';
 import { wishStatus, type WishStatus } from '../calc/wish';
@@ -233,4 +235,16 @@ export function useSectors(): Sector[] | undefined {
 
 export function useLastSnapshot(): NetWorthSnapshot | undefined {
   return useLiveQuery(() => db.netWorthSnapshots.orderBy('month').last(), []);
+}
+
+export function useBusiness(): Business | null | undefined {
+  return useLiveQuery(async () => (await db.businesses.filter((b) => !b.deletedAt).first()) ?? null, []);
+}
+
+export function useTaxSettings(date: string = todayIL()): TaxSettings | undefined {
+  return useLiveQuery(() => taxSettingsAt(db, date), [date]);
+}
+
+export function useBusinessOverview(): BusinessOverview | null | undefined {
+  return useLiveQuery(async () => (await loadBusinessOverview(db)) ?? null, []);
 }

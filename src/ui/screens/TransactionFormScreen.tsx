@@ -100,6 +100,9 @@ export function TransactionFormScreen() {
     (async () => {
       const t = await db.transactions.get(id);
       if (!t || t.deletedAt) return navigate('/transactions', { replace: true });
+      // Business transactions carry a VAT breakdown: edit them in the business forms.
+      if (t.business && 'netAgorot' in t.business) return navigate(`/business/income/${t.id}`, { replace: true });
+      if (t.business && 'expenseClassId' in t.business) return navigate(`/business/expense/${t.id}`, { replace: true });
       setExisting(t);
       setKind(t.kind);
       setAmount(agorotToInput(t.amountAgorot));
