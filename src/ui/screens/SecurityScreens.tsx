@@ -438,20 +438,23 @@ export function PricesScreen() {
           {list.map((x) => (
             <label key={x.security.id} className="flex items-center gap-3 px-4 py-2">
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{x.security.symbol}</span>
-                <span className="num block text-xs text-muted">
+                <span className="block truncate font-medium">{x.security.name}</span>
+                <span className="block truncate text-right text-xs text-muted">{x.security.symbol}</span>
+                <span className="num block truncate text-right text-xs text-muted">
                   {x.price ? `${agorotToInput(x.price.priceAgorot)} ${UNIT_SYMBOL[x.security.priceUnit]} · ${formatDisplayDate(x.price.date)}` : I.noPrice}
                 </span>
               </span>
-              <input
-                inputMode="decimal"
-                dir="ltr"
-                aria-label={`${x.security.symbol} ${I.lastPrice}`}
-                className={`${inputCls} num w-32 text-start`}
-                value={values[x.security.id] ?? ''}
-                onChange={(e) => setValues({ ...values, [x.security.id]: e.target.value })}
-              />
-              <span className="w-6 text-xs text-muted">{UNIT_SYMBOL[x.security.priceUnit]}</span>
+              <span className="w-28 shrink-0">
+                <input
+                  inputMode="decimal"
+                  dir="ltr"
+                  aria-label={`${x.security.name} ${I.lastPrice}`}
+                  className={`${inputCls} num text-start`}
+                  value={values[x.security.id] ?? ''}
+                  onChange={(e) => setValues({ ...values, [x.security.id]: e.target.value })}
+                />
+              </span>
+              <span className="w-6 shrink-0 text-xs text-muted">{UNIT_SYMBOL[x.security.priceUnit]}</span>
             </label>
           ))}
         </div>

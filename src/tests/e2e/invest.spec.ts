@@ -28,7 +28,7 @@ test('portfolio: TASE security in agorot, buy, price update, value and gain; pen
 
   // Price update to 2,150 agorot → value ₪2,150, gain ₪140.
   await page.goto('/investments/prices');
-  await page.getByLabel('TCHTLA35 מחיר אחרון').fill('2150');
+  await page.getByLabel('תכלית ת"א 35 מחיר אחרון').fill('2150');
   await page.getByRole('button', { name: 'שמירה' }).click();
   await expect(page.getByText('המחירים נשמרו')).toBeVisible();
   const hero = page.locator('section').first();
