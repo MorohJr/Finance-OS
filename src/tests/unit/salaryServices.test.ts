@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 describe('payslip (stage 7 acceptance: income by net and a pension deposit)', () => {
-  it('creates the income and the fund delta; future pay date is pending until it arrives; delete undoes both', async () => {
+  it('creates the income and the fund delta on the entry date; edit keeps the date; delete undoes both', async () => {
     const db = new FinanceDB(`sal-${crypto.randomUUID()}`);
     dbs.push(db);
     await db.open();
@@ -30,27 +30,39 @@ describe('payslip (stage 7 acceptance: income by net and a pension deposit)', ()
     );
     let txs = await db.transactions.toArray();
     const income = txs.find((t) => t.links?.payslipId === slip.id)!;
-    expect(income).toMatchObject({ kind: 'income', amountAgorot: 1_160_000, date: '2026-10-09', status: 'pending', accountId: bank.id });
-    expect(accountBalance(bank.id, txs)).toBe(0);
+    expect(income).toMatchObject({ kind: 'income', amountAgorot: 1_160_000, date: '2026-09-30', status: 'cleared', accountId: bank.id });
+    expect(accountBalance(bank.id, txs)).toBe(1_160_000);
+    expect(summarizeFlows(txs, { from: '2026-09-01', to: '2026-09-30' }).income).toBe(1_160_000);
 
     const snap = latestSnapshot(await db.pensionSnapshots.toArray(), fund.id)!;
-    expect(snap).toMatchObject({ date: '2026-10-09', balanceAgorot: 20_000_000 + 90_000 + 97_500 + 125_000, payslipId: slip.id });
-
-    expect(await clearDueSalary(db, '2026-10-08')).toBe(0);
-    expect(await clearDueSalary(db, '2026-10-09')).toBe(1);
-    txs = await db.transactions.toArray();
-    expect(accountBalance(bank.id, txs)).toBe(1_160_000);
-    expect(summarizeFlows(txs, { from: '2026-10-01', to: '2026-10-31' }).income).toBe(1_160_000);
+    expect(snap).toMatchObject({ date: '2026-09-30', balanceAgorot: 20_000_000 + 90_000 + 97_500 + 125_000, payslipId: slip.id });
 
     // Editing the payslip updates the same transaction and snapshot.
     await savePayslip(db, { employerId: employer.id, month: '2026-09', grossAgorot: 1_500_000, incomeTaxAgorot: 150_000, nationalInsuranceAgorot: 60_000, healthTaxAgorot: 40_000, pensionEmployeeAgorot: 90_000, netAgorot: 1_170_000 }, slip.id, '2026-10-10');
     txs = await db.transactions.toArray();
     expect(txs.filter((t) => t.links?.payslipId === slip.id && !t.deletedAt)).toHaveLength(1);
+    expect(txs.find((t) => t.links?.payslipId === slip.id)?.date).toBe('2026-09-30');
     expect(accountBalance(bank.id, txs)).toBe(1_170_000);
     expect(latestSnapshot(await db.pensionSnapshots.toArray(), fund.id)?.balanceAgorot).toBe(20_090_000);
 
     await deletePayslip(db, slip.id);
     expect(accountBalance(bank.id, await db.transactions.toArray())).toBe(0);
     expect(latestSnapshot(await db.pensionSnapshots.toArray(), fund.id)?.balanceAgorot).toBe(20_000_000);
+  });
+  it('a legacy pending payslip income clears on its date, or moves to the entry date when the payslip is saved again', async () => {
+    const db = new FinanceDB(`sal-${crypto.randomUUID()}`);
+    dbs.push(db);
+    await db.open();
+    const bank = await createAccount(db, { name: 'עו"ש', kind: 'bank', context: 'personal', isVisibleOnDashboard: true });
+    const employer = await saveEmployer(db, { name: 'חברה', payDay: 9, depositAccountId: bank.id });
+    const input = { employerId: employer.id, month: '2026-09', grossAgorot: 1_000_000, incomeTaxAgorot: 100_000, nationalInsuranceAgorot: 40_000, healthTaxAgorot: 30_000, netAgorot: 830_000 };
+    const slip = await savePayslip(db, input, undefined, '2026-09-30');
+    const tx = (await db.transactions.toArray()).find((t) => t.links?.payslipId === slip.id)!;
+    await db.transactions.update(tx.id, { date: '2026-10-09', status: 'pending' }); // as saved by the old pay-date rule
+
+    expect(await clearDueSalary(db, '2026-10-08')).toBe(0);
+    await savePayslip(db, input, slip.id, '2026-10-05');
+    expect(await db.transactions.get(tx.id)).toMatchObject({ date: '2026-10-05', status: 'cleared' });
+    expect(await clearDueSalary(db, '2026-10-09')).toBe(0);
   });
 });
