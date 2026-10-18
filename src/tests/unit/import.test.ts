@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as XLSX from 'xlsx';
 import { decodeText, readGrid } from '../../import/read';
 import { findHeaderRow, guessMapping, headersOf, matchPreset, headerSignature } from '../../import/mapping';
@@ -99,6 +99,14 @@ describe('reading files', () => {
 });
 
 const dbs: FinanceDB[] = [];
+// The fixtures charge on 10/10/2026; pin "today" before that so the card charge jobs don't run.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-20T09:00:00Z') });
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 afterEach(async () => {
   while (dbs.length) await dbs.pop()!.delete();
 });
