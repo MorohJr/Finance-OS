@@ -129,7 +129,11 @@ export function HomeScreen() {
     });
   }, [txs, flowOptions, today, forecast30, primaryBank, cardsData, balances, bizOverview, budget, reminders, recurringById]);
   const month = useMemo(() => summarizeFlows(txs ?? [], { ...monthRange(currentMonthIL()), ...flowOptions }), [txs, flowOptions]);
-  const recent = useMemo(() => sortTransactions((txs ?? []).filter((t) => !t.deletedAt && t.status === 'cleared' && t.date <= todayIL())).slice(0, 3), [txs]);
+  // A payslip's income waits (pending) until its pay date; show it here too so a new payslip is visible right away.
+  const recent = useMemo(
+    () => sortTransactions((txs ?? []).filter((t) => !t.deletedAt && ((t.status === 'cleared' && t.date <= todayIL()) || (t.status === 'pending' && !!t.links?.payslipId)))).slice(0, 3),
+    [txs],
+  );
 
   const backupDue = settings && hasData !== undefined && isBackupDue(settings.lastBackupAt, hasData);
   const lastBackupLabel = settings?.lastBackupAt ? formatDisplayDate(todayIL(new Date(settings.lastBackupAt))) : he.banners.backupNever;

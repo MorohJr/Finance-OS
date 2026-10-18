@@ -1,6 +1,5 @@
 import type { FinanceDB } from '../db/db';
 import { Employer, Payslip, PensionSnapshot, type Employer as EmployerT, type Payslip as PayslipT } from '../domain/schemas';
-import { payDate } from '../calc/salary';
 import { nowIso, todayIL } from '../calc/dates';
 import { compact, newSystemFields, validate } from './entity';
 import { createTransaction } from './transactions';
@@ -24,8 +23,9 @@ export async function deleteEmployer(db: FinanceDB, id: string): Promise<void> {
 
 /**
  * Saves a payslip (6.16) and keeps what it creates in sync:
- * - an `income` of the net amount into the deposit account on the pay date (pending while in the future),
- * - a PensionSnapshot delta on the employer's fund (employee + employer + severance).
+ * - an `income` of the net amount into the deposit account, dated the day the payslip is entered (`today`),
+ * - a PensionSnapshot delta on the employer's fund (employee + employer + severance), on the same date.
+ * Editing keeps the income's date; a legacy pending income (from the old pay-date rule) moves to `today`.
  */
 export async function savePayslip(db: FinanceDB, input: PayslipInput, id?: string, today: string = todayIL()): Promise<PayslipT> {
   return db.transaction('rw', [db.payslips, db.employers, db.transactions, db.pensionSnapshots, db.categories, db.accounts], async () => {
@@ -34,13 +34,14 @@ export async function savePayslip(db: FinanceDB, input: PayslipInput, id?: strin
     await db.payslips.put(row);
     const employer = await db.employers.get(row.employerId);
     if (!employer) throw new Error('employer_not_found');
-    const date = payDate(row.month, employer.payDay);
     const ts = nowIso();
 
     // Income transaction.
     const existingTx = await db.transactions.filter((t) => t.links?.payslipId === row.id && !t.deletedAt).first();
+    // DECISION (owner request 18/10/2026): the income is recorded on the entry date, not on the employer's payDay.
+    const date = existingTx && existingTx.status === 'cleared' ? existingTx.date : today;
     if (employer.depositAccountId && row.netAgorot > 0) {
-      const fields = { amountAgorot: row.netAgorot, date, accountId: employer.depositAccountId, status: date > today ? ('pending' as const) : ('cleared' as const), description: employer.name };
+      const fields = { amountAgorot: row.netAgorot, date, accountId: employer.depositAccountId, status: 'cleared' as const, description: employer.name };
       if (existingTx) await db.transactions.update(existingTx.id, { ...fields, updatedAt: ts });
       else {
         const salary = await db.categories.filter((c) => c.name === 'משכורת' && c.type === 'income' && !c.deletedAt).first();
@@ -84,7 +85,7 @@ export async function deletePayslip(db: FinanceDB, id: string): Promise<void> {
   });
 }
 
-/** Startup job: a payslip's pending income clears when its pay date arrives. */
+/** Startup job: a legacy payslip income (pending until its pay date, before the entry-date rule) clears when that date arrives. */
 export async function clearDueSalary(db: FinanceDB, today: string = todayIL()): Promise<number> {
   const due = await db.transactions.where('status').equals('pending').filter((t) => !!t.links?.payslipId && !t.deletedAt && t.date <= today).toArray();
   const ts = nowIso();

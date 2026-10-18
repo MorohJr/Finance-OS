@@ -14,6 +14,7 @@ import { addDebtCharge, recordDebtPayment, saveDebt } from '../debts2';
 import { addSaving, createWish, recordWishPurchase } from '../wish';
 import { saveFund, saveSecurity, saveSnapshot, saveTrade, selfDeposit, setFxRate, setPrice } from '../investments';
 import { saveEmployer, savePayslip } from '../salary';
+import { payDate } from '../../calc/salary';
 import { loadBusinessOverview, markVatPaid, moveToTaxReserve, saveBusiness, saveBusinessExpense, saveBusinessIncome, saveTaxSettings } from '../business';
 import { formatScaled, parseScaled } from '../../calc/investments';
 import { accountBalance } from '../../calc/balance';
@@ -137,6 +138,8 @@ export async function generateDemo(db: FinanceDB, today: string = todayIL(), pro
   for (const m of months) {
     const month = addMonths(`${m}-01`, -1).slice(0, 7); // paid on the 9th of the next month
     if (`${month}-01` < addMonths(start, -1)) continue;
+    const entered = payDate(month, employer.payDay); // the demo user enters each payslip on its pay day
+    if (entered > today) continue;
     const bonus = month.endsWith('-12') ? 45_000 : month.endsWith('-06') ? 3_200 : 0; // year-end bonus, recreation pay
     const gross = 62_000 + bonus;
     const incomeTax = Math.round(gross * 0.3);
@@ -160,7 +163,7 @@ export async function generateDemo(db: FinanceDB, today: string = todayIL(), pro
         components: bonus ? [{ kind: month.endsWith('-12') ? 'bonus' : 'recreation', amountAgorot: ils(bonus) }] : undefined,
       },
       undefined,
-      today,
+      entered,
     );
   }
 

@@ -9,7 +9,7 @@ import { useAccounts, usePension } from '../data';
 import { useGoBack } from '../hooks';
 import { db } from '../../db/db';
 import { PayslipComponent, type Employer, type Payslip } from '../../domain/schemas';
-import { averages, netMismatch, payDate } from '../../calc/salary';
+import { averages, netMismatch } from '../../calc/salary';
 import { currentMonthIL, formatDisplayDate, formatDisplayMonth, todayIL } from '../../calc/dates';
 import { formatAgorot, formatBp, parseAmountToAgorot } from '../../calc/money';
 import { previousMonth } from '../../calc/cashflow';
@@ -332,7 +332,7 @@ export function PayslipFormScreen() {
           </Field>
           <Field label={S.month}>{(p) => <input {...p} type="month" className={inputCls} value={month} onChange={(e) => setMonth(e.target.value)} />}</Field>
         </div>
-        {employer && month && <p className="-mt-2 text-xs text-muted">{S.paidOn(formatDisplayDate(payDate(month, employer.payDay)))}</p>}
+        {employer && isNew && <p className="-mt-2 text-xs text-muted">{S.paidOn(formatDisplayDate(todayIL()))}</p>}
         <div className="grid grid-cols-2 gap-3">
           {AMOUNT_FIELDS.map(([k, label]) => (
             <Field key={k} label={S[label]} hint={k === 'taxableAgorot' ? S.taxableHint : undefined}>
